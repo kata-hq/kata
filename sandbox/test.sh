@@ -20,5 +20,7 @@ check() {
 check "page exists" test -f "$page"
 check "page has doctype" grep -qi '<!doctype html>' "$page"
 check "page has heading \"Hello, kata\"" grep -q '<h1>Hello, kata</h1>' "$page"
+check "page has button \"Click me\"" grep -q '<button id="click-me" type="button">Click me</button>' "$page"
+check "page has counter \"Clicks: 0\"" grep -q '<p id="counter">Clicks: 0</p>' "$page"
 
 exit "$failed"

@@ -6,5 +6,15 @@
 </head>
 <body>
   <h1>Hello, kata</h1>
+  <button id="click-me" type="button">Click me</button>
+  <p id="counter">Clicks: 0</p>
+  <script>
+    let clicks = 0;
+    const counter = document.getElementById("counter");
+    document.getElementById("click-me").addEventListener("click", () => {
+      clicks += 1;
+      counter.textContent = "Clicks: " + clicks;
+    });
+  </script>
 </body>
 </html>
