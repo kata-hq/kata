@@ -6,3 +6,5 @@ node_modules/
 generated/
 coverage/
 dist/
+build/
+.react-router/
