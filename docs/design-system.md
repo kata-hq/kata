@@ -41,7 +41,7 @@ Defined with `stylex.defineVars` in `src/tokens.stylex.ts`. Import them from `@k
 
 ## Components
 
-All components accept `id`, `role`, `aria-*`, `data-testid` and `children` (`CommonProps`). `SpaceToken` is a key of `space`.
+The layout components accept `id`, `role`, `aria-*`, `data-testid` and `children` (`CommonProps`). `SpaceToken` is a key of `space`.
 
 | Component | Props |
 |---|---|
@@ -55,7 +55,7 @@ All components accept `id`, `role`, `aria-*`, `data-testid` and `children` (`Com
 
 ### Form and overlay components
 
-These wrap Base UI (`@base-ui/react`) primitives, which provide focus, keyboard and ARIA behavior. They do not take `CommonProps`; each lists the props it accepts.
+These wrap Base UI (`@base-ui/react`) primitives, which provide focus, keyboard and ARIA behavior. Except `Button`, they do not take `CommonProps`; each lists the props it accepts.
 
 Form fields (`Input`, `TextArea`, `Select`) share `FieldProps`:
 
