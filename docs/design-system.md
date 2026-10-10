@@ -23,7 +23,7 @@ Defined with `stylex.defineVars` in `src/tokens.stylex.ts`. Import them from `@k
 | `font` | families `familySans`, `familyMono`; sizes `sizeXs` … `sizeXxxl` (0.75rem – 1.875rem); weights `weightRegular`, `weightMedium`, `weightSemibold`, `weightBold`; line heights `lineHeightTight`, `lineHeightNormal`, `lineHeightRelaxed` |
 | `shadow` | `none`, `sm`, `md`, `lg` |
 | `zIndex` | `base`, `dropdown`, `sticky`, `overlay`, `modal`, `popover`, `toast`, `tooltip` |
-| `motion` | `durationFast`, `durationNormal`, `durationSlow`, `easingStandard`, `easingEnter`, `easingExit` |
+| `motion` | `durationFast`, `durationNormal`, `durationSlow`, `durationSpin` (one spinner turn), `easingStandard`, `easingEnter`, `easingExit` |
 
 `*Text` colors are the foreground to use on top of the matching fill (for example `accentText` on `accent`).
 
@@ -53,11 +53,58 @@ All components accept `id`, `role`, `aria-*`, `data-testid` and `children` (`Com
 | `Icon` | `name` (`check`, `x`, `plus`, `chevron-down`, `info`, `alert`, `sun`, `moon`), `size` (`sm` 16px, `md` 20px, `lg` 24px), `tone`, `label`. Without `label` the icon is decorative (`aria-hidden`); with it, it is `role="img"` with that name. |
 | `ThemeProvider` | `theme` (`system`, `light`, `dark`) |
 
+### Form and overlay components
+
+These wrap Base UI (`@base-ui/react`) primitives, which provide focus, keyboard and ARIA behavior. They do not take `CommonProps`; each lists the props it accepts.
+
+Form fields (`Input`, `TextArea`, `Select`) share `FieldProps`:
+
+- `label` (string, required): visible label and accessible name.
+- `description`: help text under the control, linked with `aria-describedby`.
+- `error`: error message. When set, the control has `aria-invalid="true"` and the message is linked with `aria-describedby`.
+- `disabled`, `required`, `name` (form field name), `id` and `data-testid` (both go on the control element).
+
+| Component | Props |
+|---|---|
+| `Button` | `variant` (`primary`, `secondary`, `ghost`, `danger`; default `primary`), `size` (`sm`, `md`; default `md`), `disabled`, `loading` (shows a spinner, sets `aria-busy`, ignores clicks, stays focusable), `type` (`button`, `submit`, `reset`; default `button`), `onClick`, plus `CommonProps` |
+| `Input` | `FieldProps`, `type` (`text`, `email`, `password`, `search`, `tel`, `url`, `number`; default `text`), `placeholder`, `autoComplete`, `value`, `defaultValue`, `onValueChange(value: string)` |
+| `TextArea` | `FieldProps`, `rows` (default 4), `placeholder`, `value`, `defaultValue`, `onValueChange(value: string)` |
+| `Checkbox` | `label` (required), `description`, `checked`, `defaultChecked`, `onCheckedChange(checked: boolean)`, `disabled`, `required`, `name`, `value`, `id`, `data-testid` |
+| `Select` | `FieldProps`, `options` (`{ value, label, disabled? }[]`), `placeholder`, `value`, `defaultValue` (`string \| null`), `onValueChange(value: string \| null)`. The trigger has `role="combobox"`; the options open in a portal. |
+| `Dialog` | `title` (required; accessible name), `description` (accessible description), `trigger` (element that opens it, usually a `Button`), `open`, `defaultOpen`, `onOpenChange(open: boolean)`, `size` (`sm`, `md`, `lg`; default `md`), `actions` (buttons at the bottom), `closeLabel` (name of the x button; default `Close`), `data-testid` (on the popup), `children` |
+| `DialogClose` | A `Button` that closes the surrounding `Dialog`: `variant` (default `secondary`), `size`, `data-testid`, `children` |
+
+```tsx
+<Dialog
+  title="Delete note"
+  description="This cannot be undone."
+  trigger={<Button variant="danger">Delete</Button>}
+  actions={
+    <>
+      <DialogClose>Cancel</DialogClose>
+      <Button variant="danger" loading={deleting} onClick={onDelete}>Delete</Button>
+    </>
+  }
+/>
+```
+
+The dialog is modal: it traps focus, closes on Escape or the x button, and returns focus to the trigger.
+
+### Style Base UI states
+
+Base UI marks state with data attributes (`data-checked`, `data-disabled`, `data-invalid`, `data-highlighted`, `data-placeholder`, `data-starting-style`, `data-ending-style`, ...). Style them in `stylex.create` with an `:is()` pseudo key, which compiles to an attribute selector:
+
+```ts
+backgroundColor: { default: color.surface, ":is([data-checked])": color.accent },
+```
+
+Spread `stylex.props(...)` on each Base UI part. Do not pass Base UI's `className` or `style` props by hand.
+
 ## Add a component
 
 1. Create `src/components/<Name>.tsx`. Style it with `stylex.create` using tokens only.
 2. Type its props as `CommonProps & { ...variants }`. Each variant is a union of keys, mapped to a `stylex.create` entry (see `Stack` for the pattern). Never add `style` or `className`.
-3. Use Base UI (`@base-ui/react`) for behavior (focus, keyboard, ARIA) on interactive components.
+3. Use Base UI (`@base-ui/react`) for behavior (focus, keyboard, ARIA) on interactive components. Style its states with data attributes (see above).
 4. Export the component and its prop types from `src/index.ts`.
 5. Add `src/components/<Name>.test.tsx`: it renders, each variant changes the class, and ARIA attributes are correct.
 6. Add it to the table above.
