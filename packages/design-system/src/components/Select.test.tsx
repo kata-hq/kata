@@ -41,7 +41,7 @@ describe("Select", () => {
     await userEvent.keyboard("{ArrowDown}");
     await screen.findByRole("listbox");
     await userEvent.keyboard("{ArrowDown}{Enter}");
-    await waitFor(() => expect(onValueChange).toHaveBeenCalled());
+    await waitFor(() => expect(onValueChange).toHaveBeenLastCalledWith("bio"));
   });
 
   test("Escape closes the popup without choosing", async () => {
