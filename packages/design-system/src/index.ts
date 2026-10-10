@@ -1,5 +1,6 @@
 // Tokens are NOT re-exported here: StyleX only recognizes `defineVars` imports whose path ends in
 // `.stylex`. Import them from "@kata/design-system/tokens.stylex".
+// Themes are applied only through ThemeProvider, so the theme objects are not exported.
 
 export type { BoxBackground, BoxProps } from "./components/Box.tsx";
 export { Box } from "./components/Box.tsx";
@@ -15,5 +16,4 @@ export type { TextElement, TextProps, TextSize, TextWeight } from "./components/
 export { Text } from "./components/Text.tsx";
 export type { ThemeMode, ThemeProviderProps } from "./theme/ThemeProvider.tsx";
 export { ThemeProvider } from "./theme/ThemeProvider.tsx";
-export { darkTheme, lightTheme } from "./theme/themes.ts";
 export type { CommonProps, LayoutElement, RadiusToken, SpaceToken, Tone } from "./types.ts";
