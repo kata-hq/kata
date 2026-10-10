@@ -26,12 +26,12 @@ apps/api/src/
 | Folder / file | Contains | May import |
 |---|---|---|
 | `domain/` | Entities and value types (`SystemCheck`, `HealthStatus`), repository **interfaces** (`SystemCheckRepository`), domain error types. | `@kata/shared`, `shared/persistence/repository-error.ts`. No Prisma, no Hono. |
-| `application/` | The public service **interface** (`HealthService`) and the service **classes** that implement it (`SystemCheckHealthService`). Dependencies come through the constructor and are domain interfaces. | `domain/`, `@kata/shared`, other modules' `index.ts` (types). Never Prisma or Hono. |
+| `application/` | The public service **interface** (`HealthService`) and the service **classes** that implement it (`SystemCheckHealthService`). Dependencies come through the constructor and are interfaces (domain repositories, the `Logger`). | `domain/`, `@kata/shared`, `src/logger.ts` (the `Logger` type), other modules' `index.ts` (types). Never Prisma or Hono. |
 | `infrastructure/` | Prisma repositories implementing the domain interfaces (`PrismaSystemCheckRepository`), the module's Prisma client factory (`createHealthPrismaClient`), its unit of work. | `domain/`, `prisma/generated/`, `shared/persistence/`. |
 | `http/` | A route factory that takes the service interface and returns a Hono app (`createHealthRoutes(service)`), plus Zod request schemas when a route has input. | `application/` (interface types), `domain/` (types), `hono`. |
 | `prisma/` | The module's Prisma schema, config, migrations and seed. See [database.md](database.md). | |
-| `module.ts` | `createHealthModule({ prisma })` → `{ service, routes }`. The only file of the module that calls `new` on its classes. | Everything in the module. |
-| `index.ts` | The public API: `createHealthModule`, `createHealthPrismaClient`, and the types `HealthService`, `HealthStatus`, `HealthRoutes`, `HealthModule`, `HealthModuleDeps`. | The module's own files. |
+| `module.ts` | `createHealthModule({ prisma, logger })` → `{ service, routes }`. The only file of the module that calls `new` on its classes. | Everything in the module. |
+| `index.ts` | The public API: `createHealthModule`, `createHealthPrismaClient`, `createHealthRoutes` (for app tests with a fake service), and the types `HealthService`, `HealthStatus`, `DbStatus`, `HealthRoutes`, `HealthModule`, `HealthModuleDeps`, `HealthPrismaClient`. | The module's own files. |
 
 Code outside a module imports **only** `modules/<module>/index.ts`. Tests inside the module may import its internal files.
 
@@ -39,16 +39,16 @@ Code outside a module imports **only** `modules/<module>/index.ts`. Tests inside
 
 There are two levels, and nothing else creates objects with `new`:
 
-1. **Module root** (`module.ts`). It receives what it cannot build itself (its Prisma client, other modules' services) and wires its classes with constructor injection:
+1. **Module root** (`module.ts`). It receives what it cannot build itself (its Prisma client, the logger, other modules' services) and wires its classes with constructor injection:
 
    ```ts
-   export function createHealthModule({ prisma }: HealthModuleDeps): HealthModule {
-     const service = new SystemCheckHealthService(new PrismaSystemCheckRepository(prisma));
+   export function createHealthModule({ prisma, logger }: HealthModuleDeps): HealthModule {
+     const service = new SystemCheckHealthService(new PrismaSystemCheckRepository(prisma), logger);
      return { service, routes: createHealthRoutes(service) };
    }
    ```
 
-2. **App root** (`apps/api/src/app.ts`). `createApp(env, logger)` builds each module's Prisma client, calls each module root in dependency order, and passes the routes to `buildApp`, which adds the request log, the error handler and the 404 handler, then mounts each module at `/api/<module>`. `createApp` returns `{ app, close }`; `close` disconnects every Prisma client. `server.ts` calls it once and closes on `SIGINT` / `SIGTERM`.
+2. **App root** (`apps/api/src/app.ts`). `createApp(env, logger)` builds each module's Prisma client, calls each module root in dependency order, and passes the routes to `buildApp`, which adds the request log, the error handler and the 404 handler, then mounts each module at `/api/<module>`. `createApp` returns `{ app, close }`; `close` disconnects every Prisma client. `server.ts` calls `createApp` once per process start, and once more on each reload under `bun --hot` (it closes the previous app's clients first). It calls `close` on `SIGINT` / `SIGTERM`.
 
 Manual constructor injection only: no DI container, no decorators, no service locator. Add an interface or a layer only when there is a current need for it.
 
@@ -60,7 +60,7 @@ Manual constructor injection only: no DI container, no decorators, no service lo
 
 - **Expected failures are `Result`s**, not exceptions (`ok(...)`, `err(...)` from `@kata/shared`, narrowed with `r.ok`).
 - **Repositories** return `Result<T, RepositoryError>` (`unique-violation`, `not-found`, `foreign-key-violation`). Prisma errors are mapped in one place, `shared/persistence/prisma-errors.ts` (`runQuery`). Anything else (lost connection, a bug) is thrown.
-- **Services** return `Result<T, E>` with a module error type the routes can turn into a status. They catch a thrown error only when it is an expected outcome of their use case: `HealthService.check()` returns `Err({ db: "down" })` when the repository throws, because detecting an outage is its job.
+- **Services** return `Result<T, E>` with a module error type the routes can turn into a status. They catch a thrown error only when it is an expected outcome of their use case: `HealthService.check()` returns `Err({ db: "down" })` when the repository throws, because detecting an outage is its job, and logs the error name and code (`warn`) so a bug does not pass silently for an outage.
 - **Routes** map `Ok` / `Err` to status codes. An error they do not handle is thrown to the app error handler.
 - **Error responses** always have the body `{ "error": { "code": string, "message": string } }` (`shared/http/errors.ts`). Unknown routes → 404 `not_found`. A `HTTPException` keeps its status. Any other thrown error → 500 `internal_error`, logged with its stack; the stack and message never reach the client.
 - **Transactions** use the module's unit of work (`createHealthUnitOfWork`): commit on `Ok`, roll back on `Err` or throw. One transaction never spans two modules.
@@ -89,7 +89,7 @@ export function createAcademicModule({ prisma, health }: AcademicModuleDeps) {
 }
 
 // app.ts (createApp): build the dependency first, then pass its service.
-const health = createHealthModule({ prisma: healthPrisma });
+const health = createHealthModule({ prisma: healthPrisma, logger });
 const academic = createAcademicModule({ prisma: academicPrisma, health: health.service });
 ```
 
