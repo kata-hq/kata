@@ -32,7 +32,7 @@ export type RunningApp = {
 /** The app-level composition root: database clients → modules → app. The only place that wires modules. */
 export function createApp(env: Env, logger: Logger): RunningApp {
   const healthPrisma = createHealthPrismaClient(env.DATABASE_URL);
-  const health = createHealthModule({ prisma: healthPrisma });
+  const health = createHealthModule({ prisma: healthPrisma, logger });
 
   return {
     app: buildApp(logger, { health: health.routes }),

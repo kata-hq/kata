@@ -1,11 +1,13 @@
 import { afterAll, beforeEach, describe, expect, test } from "bun:test";
+import { createLogger } from "../../logger.ts";
 import { resetTestDatabase } from "../../shared/persistence/database-admin.ts";
 import { testDatabaseUrl } from "../../shared/persistence/test-database.ts";
 import { createHealthModule, createHealthPrismaClient } from "./index.ts";
 
 const url = testDatabaseUrl();
 const prisma = createHealthPrismaClient(url);
-const health = createHealthModule({ prisma });
+const logger = createLogger({ write: () => {} });
+const health = createHealthModule({ prisma, logger });
 
 beforeEach(() => resetTestDatabase(url, ["health"]));
 afterAll(() => prisma.$disconnect());
@@ -25,7 +27,7 @@ describe("health module", () => {
   test("GET / returns 503 with db down when Postgres cannot be reached", async () => {
     const unreachable = createHealthPrismaClient("postgres://kata:kata@127.0.0.1:1/kata_test");
     try {
-      const res = await createHealthModule({ prisma: unreachable }).routes.request("/");
+      const res = await createHealthModule({ prisma: unreachable, logger }).routes.request("/");
 
       expect(res.status).toBe(503);
       expect(await res.json()).toMatchObject({ api: "ok", db: "down" });
