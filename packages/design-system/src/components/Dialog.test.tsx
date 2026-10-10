@@ -57,6 +57,20 @@ describe("Dialog", () => {
     await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "Delete" })));
   });
 
+  test("Tab and Shift+Tab keep focus inside the open dialog", async () => {
+    renderDialog();
+    const dialog = await openDialog();
+    const focusable = ["Close", "Cancel", "Confirm"].map((name) => screen.getByRole("button", { name }));
+    for (let i = 0; i < 6; i++) {
+      await userEvent.tab();
+      expect(focusable).toContain(document.activeElement as HTMLElement);
+    }
+    for (let i = 0; i < 6; i++) {
+      await userEvent.tab({ shift: true });
+      expect(dialog.contains(document.activeElement)).toBe(true);
+    }
+  });
+
   test("the close (x) button closes it", async () => {
     renderDialog();
     await openDialog();
