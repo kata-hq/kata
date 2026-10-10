@@ -93,6 +93,8 @@ export const motion = stylex.defineVars({
   durationFast: "100ms",
   durationNormal: "200ms",
   durationSlow: "300ms",
+  /** One turn of a loading spinner. */
+  durationSpin: "800ms",
   easingStandard: "cubic-bezier(0.2, 0, 0, 1)",
   easingEnter: "cubic-bezier(0, 0, 0, 1)",
   easingExit: "cubic-bezier(0.3, 0, 1, 1)",
