@@ -62,7 +62,7 @@ All worktrees share the `kata-postgres` container (compose project `kata`) and i
 
 ## Tests
 
-- Unit tests: `bun test` (or `bun run test:unit`). `bunfig.toml` excludes `*.int.test.ts`.
+- Unit tests: `bun run test` (or `bun run test:unit`). It runs each workspace's `test` script (`bun run --filter '*' test`), so each workspace's own `bunfig.toml` applies. `apps/api/bunfig.toml` (and the root `bunfig.toml`) exclude `*.int.test.ts`.
 - Integration tests: `bun run test:int`. It uses `bunfig.int.toml`, whose preload (`scripts/ensure-test-db.ts`) creates and migrates `TEST_DATABASE_URL` before any test file loads. The name must end in `_test`.
 - In an integration test, get the URL with `testDatabaseUrl()` and empty the tables with `resetTestDatabase(url, ["<schema>"])` (`apps/api/src/shared/persistence/`). Both refuse any database whose name does not end in `_test`. The reset keeps `_prisma_migrations`.
 
