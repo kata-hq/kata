@@ -3,8 +3,7 @@ import { err, ok } from "@kata/shared";
 import { hc } from "hono/client";
 import { type AppType, buildApp } from "./app.ts";
 import { createLogger } from "./logger.ts";
-import { createHealthRoutes } from "./modules/health/http/health-routes.ts";
-import type { HealthService } from "./modules/health/index.ts";
+import { createHealthRoutes, type HealthService } from "./modules/health/index.ts";
 
 const lastCheck = new Date("2026-10-10T08:00:00.000Z");
 
@@ -50,7 +49,7 @@ describe("request log", () => {
       level: "info",
       msg: "request",
       method: "GET",
-      path: "/api/health",
+      route: "/api/health",
       status: 200,
       durationMs: expect.any(Number),
       requestId,
@@ -77,7 +76,7 @@ describe("errors", () => {
     expect(res.status).toBe(404);
     expect(res.headers.get("x-request-id")).not.toBeNull();
     expect(await res.json()).toEqual({ error: { code: "not_found", message: "Route not found" } });
-    expect(logs()).toMatchObject([{ msg: "request", path: "/api/nothing-here", status: 404 }]);
+    expect(logs()).toMatchObject([{ msg: "request", route: "unmatched", status: 404 }]);
   });
 
   test("an unknown error returns 500 without the stack and logs it", async () => {
@@ -101,7 +100,7 @@ describe("errors", () => {
       requestId,
     });
     expect(String(errorLine?.["stack"])).toContain("internal detail");
-    expect(requestLine).toMatchObject({ msg: "request", status: 500, requestId });
+    expect(requestLine).toMatchObject({ msg: "request", route: "/api/health", status: 500, requestId });
   });
 });
 
