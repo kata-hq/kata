@@ -1,0 +1,3 @@
+# `bun test` here runs unit tests only. Integration tests (*.int.test.ts) run from the root with `bun run test:int`.
+[test]
+pathIgnorePatterns = ["**/*.int.test.ts", "**/node_modules/**"]

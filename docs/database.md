@@ -83,3 +83,17 @@ Template for a new row: table (`schema.table`), the personal data columns, why w
 | Table | Content |
 |---|---|
 | `health.system_check` | Health check results: id, status, time. |
+
+### Logs
+
+The API writes JSON lines to stdout (`apps/api/src/logger.ts`): `time`, `level`, `msg`, then fields. Logs are not stored by the app; retention is the job of whatever collects stdout.
+
+| Line (`msg`) | Fields |
+|---|---|
+| `request` (one per request) | `method`, `route` (the matched route pattern such as `/api/health` or `/api/users/:id`, never the real path; `unmatched` when no route matched), `status`, `durationMs`, `requestId` (random UUID, also sent as `x-request-id`) |
+| `unhandled error` | `requestId`, `error` (error class name), `stack` |
+| `health check failed` (warn) | `error` (error class name, or the `RepositoryError` type), `code` (driver error code such as `ECONNREFUSED`, when there is one). Never the error message. |
+| `invalid environment` | `variables`: name and problem of each bad variable, never its value |
+| `api started` / `api stopping` / `api stopped` | `port`, `signal` |
+
+**No personal data in logs.** Never log real request paths (ids and emails can sit in a path), request or response bodies, query strings, headers (cookies, authorization), IP addresses, user agents, user ids, emails or names. Error messages that go into logs must not contain user data either. The `unhandled error` stack starts with the error message, so a driver error that quotes row values would end up there: keep this in mind for the first module with personal data. A new field that could identify a person needs a row in the register above first.
