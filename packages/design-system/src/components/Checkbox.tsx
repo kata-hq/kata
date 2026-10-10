@@ -27,6 +27,9 @@ export type CheckboxProps = {
   "data-testid"?: string;
 };
 
+/** Side of the box. The description is indented by it so it lines up with the label. */
+const BOX_SIZE = "18px";
+
 const styles = stylex.create({
   row: { alignItems: "center", display: "flex", gap: space.sm },
   label: {
@@ -52,14 +55,14 @@ const styles = stylex.create({
     opacity: { default: 1, ":is([data-disabled])": 0.6 },
     padding: 0,
     flexShrink: 0,
-    height: "18px",
+    height: BOX_SIZE,
     justifyContent: "center",
     transitionDuration: motion.durationFast,
     transitionProperty: "background-color, border-color",
-    width: "18px",
+    width: BOX_SIZE,
   },
   indicator: { display: "flex" },
-  description: { paddingInlineStart: `calc(18px + ${space.sm})` },
+  description: { paddingInlineStart: `calc(${BOX_SIZE} + ${space.sm})` },
 });
 
 /** Checkbox with a label. Built on Base UI Checkbox and Field. */
