@@ -74,6 +74,16 @@ describe("Button", () => {
     expect(document.activeElement).toBe(button);
   });
 
+  test("a disabled button is not focusable, even while loading", async () => {
+    render(
+      <Button loading disabled>
+        Save
+      </Button>,
+    );
+    await userEvent.tab();
+    expect(document.activeElement).toBe(document.body);
+  });
+
   test("submit type is forwarded", () => {
     render(<Button type="submit">Send</Button>);
     expect(screen.getByRole("button", { name: "Send" }).getAttribute("type")).toBe("submit");

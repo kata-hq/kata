@@ -122,7 +122,7 @@ export const Button = ({
     {...rest}
     type={type}
     disabled={disabled || loading}
-    focusableWhenDisabled={loading}
+    focusableWhenDisabled={loading && !disabled}
     aria-busy={loading || undefined}
     {...stylex.props(
       focus.ring,
