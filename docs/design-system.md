@@ -30,8 +30,8 @@ Defined with `stylex.defineVars` in `src/tokens.stylex.ts`. Import them from `@k
 ## Themes
 
 - Token defaults follow the system color scheme (`prefers-color-scheme`).
-- `lightTheme` and `darkTheme` (`stylex.createTheme`, `src/theme/themes.ts`) force one scheme. When you change a color, change it in both `tokens.stylex.ts` and `themes.ts`.
-- `ThemeProvider` is the root of every app. `theme` is `"system"` (default), `"light"` or `"dark"`. It applies the theme, the base text color, background and font, and `color-scheme`.
+- The raw light and dark values live once in `src/palette.stylex.ts` (`stylex.defineConsts`). `tokens.stylex.ts` uses them for the defaults, and `src/theme/themes.ts` uses them for the forced themes (`stylex.createTheme` on `color` and `shadow`). Change a color in the palette only. In `createTheme`, write every key (`bg: dark.bg, ...`): passing the whole consts object compiles to no CSS and gives no error. `themes.css.test.ts` checks the compiled CSS.
+- `ThemeProvider` is the root of every app and the only supported way to apply a theme; the theme objects are not exported. `theme` is `"system"` (default), `"light"` or `"dark"`. It applies the color and shadow themes, the base text color, background and font, and `color-scheme`.
 
 ```tsx
 <ThemeProvider theme="system">
