@@ -1,1 +1,8 @@
 .claude/worktrees/
+node_modules/
+.env
+.env.*
+!.env.example
+generated/
+coverage/
+dist/

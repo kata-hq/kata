@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Student Second Brain — Spécification du MVP</title>
+<style>
+body{max-width:860px;margin:0 auto;padding:16px;line-height:1.5}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid;padding:4px 8px;text-align:left;vertical-align:top}
+pre{overflow-x:auto}
+.table-wrap{overflow-x:auto}
+ul.checklist{list-style:none;padding-left:0}
+figure{margin:16px 0;padding:8px;border:1px solid}
+figure svg{width:100%;height:auto;display:block}
+figcaption{font-size:.9em;margin-top:4px}
+.note{border-left:4px solid;padding:4px 12px;margin:12px 0}
+.tag{font-size:.8em;border:1px solid;padding:0 4px;white-space:nowrap}
+h3{margin-top:28px}
+h4{margin:20px 0 6px}
+</style>
+</head>
+<body>
+<h1>Student Second Brain — Spécification du MVP</h1>
+<p>Version : 2026-09-30</p>
+<p><strong>Changements dans cette version :</strong></p>
+<ul>
+<li>Nouvelle section 10 « Architecture technique » : toutes les décisions techniques.</li>
+<li>Sortent du MVP : notification quotidienne (email), mobile et PWA, worker, tâches de fond, table d'événements de domaine.</li>
+<li>Blocs manqués : traités à l'ouverture de l'app, pas à 04:00.</li>
+<li>Pas de clé étrangère entre modules : le code vérifie les IDs. Une base, un schéma Postgres et un client Prisma par module.</li>
+</ul>
+<p><strong>Version 2026-09-29 :</strong></p>
+<ul>
+<li>Le plan des sprints est supprimé. Il est remplacé par des épopées et des tâches, groupées par fonction (section 13).</li>
+<li>Périmètre réduit : PostHog et le bandeau de consentement, la corbeille, l'export et la suppression du compte en libre-service, et les modèles de notes sortent du MVP.</li>
+<li>Architecture décidée : monolithe modulaire.</li>
+<li>Planificateur : nouvelles règles pour le placement des blocs, la limite par tâche et par jour, la marge avant l'échéance et la date de début (S12 à S15).</li>
+<li>Nouveau modèle de données : modules, tables communes, liens génériques, événements de domaine, types de tâches et règles de révision en données (section 9).</li>
+</ul>
+<p>Les valeurs marquées <span class="tag">proposition</span> ne sont pas encore décidées.</p>
+
+<h2>Sommaire</h2>
+<ol>
+<li>Objectif</li>
+<li>Bêta-testeurs</li>
+<li>Périmètre</li>
+<li>Boucle principale</li>
+<li>Parcours utilisateur</li>
+<li>User stories</li>
+<li>Règles métier</li>
+<li>Écrans</li>
+<li>Modèle de données (sous-ensemble)</li>
+<li>Architecture technique</li>
+<li>Événements produit</li>
+<li>Critères de succès</li>
+<li>Épopées et tâches</li>
+<li>Risques</li>
+<li>Décisions et questions ouvertes</li>
+</ol>
+
+<h2>1. Objectif</h2>
+<p>Ce document concerne le MVP (itération 1). La Spécification Produit contient le périmètre complet.</p>
+<p>Le MVP remplace le papier pour la planification de la semaine et les notes de cours d'un étudiant en Licence.</p>
+<p><strong>Hypothèse :</strong> un étudiant qui utilise le papier aujourd'hui utilisera l'app 3 jours ou plus par semaine, si l'app planifie le travail automatiquement et garde les notes avec chaque cours.</p>
+<p><strong>Le MVP doit montrer que :</strong></p>
+<ol>
+<li>La saisie est plus rapide que le papier.</li>
+<li>Le planning de l'app est réaliste. L'étudiant le suit.</li>
+<li>Les étudiants rouvrent leurs notes de cours plus tard.</li>
+<li>Les notes et le planning sont connectés : les tâches écrites dans une note de cours vont dans le planning.</li>
+</ol>
+
+<h2>2. Bêta-testeurs</h2>
+<ul>
+<li>Deux étudiants en Licence au départ. Aujourd'hui, ils utilisent le papier et leur mémoire.</li>
+<li>La bêta est gratuite. Chaque étudiant a un compte. Il n'y a pas de groupes.</li>
+<li>Retours : métriques d'usage, et courts échanges avec les testeurs à intervalles réguliers.</li>
+<li>Ajouter des testeurs quand les testeurs demandent à inviter des camarades.</li>
+</ul>
+
+<h2>3. Périmètre</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Dans le MVP</th><th>Hors du MVP</th></tr></thead>
+<tbody>
+<tr><td>Compte (connexion par email)</td><td>Groupes, projets, kanban</td></tr>
+<tr><td>Semestre et cours (avec noms courts et alias)</td><td>Partage, liens en lecture seule, commentaires</td></tr>
+<tr><td>Séances hebdomadaires : CM/TD/TP, groupe, semaines A/B, exceptions</td><td>Import ICS, analyse par IA</td></tr>
+<tr><td>Réglage du temps libre (avec une valeur par défaut)</td><td>Import de PDF et annotations</td></tr>
+<tr><td>Tâches et examens (CC, partiel, oral), saisie rapide</td><td>Flashcards, répétition espacée</td></tr>
+<tr><td>Estimations par défaut, règles de révision par type d'examen</td><td>Notes / moyennes (à décider, voir section 15)</td></tr>
+<tr><td>Planificateur : blocs épinglés, replanification, fenêtre de stabilité, raisons, actions en cas de surcharge</td><td>Mode examen</td></tr>
+<tr><td>Vue Aujourd'hui, calendrier de la semaine</td><td>Mode hors ligne (seulement un brouillon local pour les notes)</td></tr>
+<tr><td>Notes de séance, notes de cours, notes libres</td><td>Modèles de notes, éditeur temps réel</td></tr>
+<tr><td>Tâches dans les notes</td><td>Liens <code>[[</code> et rétroliens</td></tr>
+<tr><td>Recherche et saisie rapide (Cmd+K, et un bouton toujours visible)</td><td>Mobile : apps natives, PWA, mise en page mobile</td></tr>
+<tr><td></td><td>Notification quotidienne (email)</td></tr>
+<tr><td></td><td>Offre payante</td></tr>
+<tr><td>Suppression douce (<code>deletedAt</code>) ; restauration, export et suppression du compte faits à la main, sur demande</td><td>Corbeille, export et suppression du compte en libre-service</td></tr>
+<tr><td>Événements produit en base de données. Application web pour ordinateur</td><td>PostHog, bandeau de consentement</td></tr>
+<tr><td></td><td>Fin de semestre, copie de semestre (peu après le MVP)</td></tr>
+</tbody>
+</table></div>
+
+<h2>4. Boucle principale</h2>
+<p>Le produit est une boucle. L'étudiant donne du travail. L'app le planifie. L'étudiant le fait. L'app replanifie ce qui n'est pas fait. Les notes et les examens alimentent la boucle.</p>
+<figure>
+<svg viewBox="0 0 760 265" role="img" aria-label="Boucle principale : saisir, planifier, faire, replanifier" fill="none" stroke="currentColor" font-family="sans-serif" font-size="14">
+<defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="currentColor" stroke="none"/></marker></defs>
+<rect x="20" y="20" width="150" height="50" rx="6"/><text x="95" y="42" text-anchor="middle" fill="currentColor" stroke="none">Note de cours</text><text x="95" y="60" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">ligne de tâche</text>
+<rect x="210" y="20" width="150" height="50" rx="6"/><text x="285" y="42" text-anchor="middle" fill="currentColor" stroke="none">Examen</text><text x="285" y="60" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">tâches de révision</text>
+<rect x="20" y="120" width="150" height="54" rx="6" stroke-width="2"/><text x="95" y="143" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">1. Saisir</text><text x="95" y="162" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">tâche + échéance</text>
+<rect x="210" y="120" width="150" height="54" rx="6" stroke-width="2"/><text x="285" y="143" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">2. Planifier</text><text x="285" y="162" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">le planificateur crée</text>
+<rect x="400" y="120" width="150" height="54" rx="6" stroke-width="2"/><text x="475" y="143" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">3. Faire</text><text x="475" y="162" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">Aujourd'hui : fait</text>
+<rect x="590" y="120" width="150" height="54" rx="6" stroke-width="2"/><text x="665" y="143" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">4. Replanifier</text><text x="665" y="162" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">passé, manqué, modifié</text>
+<line x1="95" y1="70" x2="95" y2="118" marker-end="url(#a1)"/>
+<line x1="285" y1="70" x2="285" y2="118" marker-end="url(#a1)"/>
+<line x1="170" y1="147" x2="208" y2="147" marker-end="url(#a1)"/>
+<line x1="360" y1="147" x2="398" y2="147" marker-end="url(#a1)"/>
+<line x1="550" y1="147" x2="588" y2="147" marker-end="url(#a1)"/>
+<path d="M665 174 C665 235 285 235 285 176" marker-end="url(#a1)"/>
+<text x="475" y="255" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">le travail non fait retourne au planificateur</text>
+</svg>
+<figcaption>Figure 1. Boucle principale. Chaque fonction du MVP sert une étape de cette boucle.</figcaption>
+</figure>
+
+<h2>5. Parcours utilisateur</h2>
+<p>Chaque parcours a un déclencheur, des étapes et un résultat. Les <strong>points ouverts</strong> sont des manques. La section 7 donne une proposition pour la plupart d'entre eux.</p>
+
+<h3>P1. Onboarding (première utilisation)</h3>
+<p><strong>Déclencheur :</strong> l'étudiant ouvre l'app pour la première fois. <strong>Cible :</strong> un premier planning en moins de 5 minutes <span class="tag">proposition</span>.</p>
+<figure>
+<svg viewBox="0 0 760 150" role="img" aria-label="Étapes de l'onboarding" fill="none" stroke="currentColor" font-family="sans-serif" font-size="13">
+<defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor" stroke="none"/></marker></defs>
+<rect x="10" y="20" width="95" height="44" rx="6"/><text x="57" y="46" text-anchor="middle" fill="currentColor" stroke="none">Inscription</text>
+<rect x="135" y="20" width="95" height="44" rx="6"/><text x="182" y="46" text-anchor="middle" fill="currentColor" stroke="none">Semestre</text>
+<rect x="260" y="20" width="95" height="44" rx="6"/><text x="307" y="46" text-anchor="middle" fill="currentColor" stroke="none">Cours</text>
+<rect x="385" y="20" width="95" height="44" rx="6"/><text x="432" y="39" text-anchor="middle" fill="currentColor" stroke="none">Emploi</text><text x="432" y="56" text-anchor="middle" fill="currentColor" stroke="none">du temps</text>
+<rect x="510" y="20" width="95" height="44" rx="6"/><text x="557" y="46" text-anchor="middle" fill="currentColor" stroke="none">Temps libre</text>
+<rect x="635" y="20" width="115" height="44" rx="6"/><text x="692" y="46" text-anchor="middle" fill="currentColor" stroke="none">Premières tâches</text>
+<line x1="105" y1="42" x2="133" y2="42" marker-end="url(#a2)"/>
+<line x1="230" y1="42" x2="258" y2="42" marker-end="url(#a2)"/>
+<line x1="355" y1="42" x2="383" y2="42" marker-end="url(#a2)"/>
+<line x1="480" y1="42" x2="508" y2="42" marker-end="url(#a2)"/>
+<line x1="605" y1="42" x2="633" y2="42" marker-end="url(#a2)"/>
+<line x1="692" y1="64" x2="692" y2="96" marker-end="url(#a2)"/>
+<rect x="580" y="98" width="170" height="40" rx="6" stroke-width="2"/><text x="665" y="123" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">Aujourd'hui + planning</text>
+<text x="432" y="86" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">peut être passé</text>
+<text x="557" y="86" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">défaut : 1 tap</text>
+</svg>
+<figcaption>Figure 2. Onboarding. L'app enregistre la durée de chaque étape.</figcaption>
+</figure>
+<ol>
+<li>S'inscrire avec un email.</li>
+<li>Créer le semestre. L'app propose les dates du semestre en cours. L'étudiant indique la première semaine A.</li>
+<li>Ajouter les cours : un nom et une couleur pour chacun. Le nom court est optionnel.</li>
+<li>Saisir l'emploi du temps hebdomadaire. L'étudiant peut passer cette étape et la faire plus tard.</li>
+<li>Régler le temps libre : accepter la valeur par défaut en un tap, ou la modifier.</li>
+<li>Ajouter les premières tâches et les examens avec la saisie rapide.</li>
+<li>L'app affiche la vue Aujourd'hui avec le premier planning.</li>
+</ol>
+<p><strong>Résultat :</strong> l'étudiant a un planning dès le premier jour.</p>
+<p><strong>Points ouverts :</strong> les états vides (pas d'emploi du temps, pas de tâches) ; l'ordre des étapes 4 et 5 quand l'étape 4 est passée.</p>
+
+<h3>P2. Boucle quotidienne</h3>
+<p><strong>Déclencheur :</strong> l'étudiant ouvre l'app.</p>
+<ol>
+<li>La vue Aujourd'hui affiche les séances, les blocs (avec leur raison), les échéances et les alertes.</li>
+<li>À un bloc : <em>démarrer</em> (optionnel), puis <em>fait</em>. L'app demande le temps passé (optionnel, un tap : « comme prévu », ou une valeur).</li>
+<li>Ou <em>passer</em>. Le travail retourne à la tâche. Le planificateur le replanifie.</li>
+<li>Les blocs passés sans action deviennent <em>manqués</em> à la prochaine ouverture de l'app. Le planificateur replanifie le travail.</li>
+<li>Quand le travail prévu d'une tâche est fait, l'app demande : « La tâche est-elle terminée ? » (Terminée / Besoin de plus de temps : +30 min, +1 h, +2 h).</li>
+</ol>
+<p><strong>Résultat :</strong> l'étudiant suit le planning. Les estimations s'améliorent.</p>
+<p><strong>Points ouverts :</strong> le message pour les blocs manqués (sans culpabiliser).</p>
+
+<h3>P3. Saisie rapide</h3>
+<p><strong>Déclencheur :</strong> l'étudiant se souvient d'un travail. La saisie est disponible depuis chaque écran.</p>
+<ol>
+<li>Cliquer sur le bouton de saisie ou appuyer sur Cmd+K.</li>
+<li>Écrire une ligne : « DM compta vendredi ».</li>
+<li>L'app affiche des pastilles : cours <em>Comptabilité générale</em>, type <em>DM</em>, échéance <em>vendredi</em>. L'étudiant corrige une pastille en un tap.</li>
+<li>Valider avec Entrée. La tâche reçoit l'estimation par défaut de son type. Le planificateur la planifie.</li>
+</ol>
+<p><strong>Résultat :</strong> la tâche est dans le planning en quelques secondes.</p>
+<p><strong>Points ouverts :</strong> aucune date trouvée (règle C5) ; aucun cours trouvé (règle C4).</p>
+
+<h3>P4. En cours : notes et tâches</h3>
+<p><strong>Déclencheur :</strong> une séance commence.</p>
+<ol>
+<li>Taper sur la séance (vue Aujourd'hui ou calendrier). La note de séance s'ouvre. Elle est liée à la séance et au cours.</li>
+<li>Écrire.</li>
+<li>L'enseignant donne un travail. L'étudiant écrit une ligne de tâche dans la note.</li>
+<li>L'app crée la tâche avec le cours de la note. Le planificateur la planifie. La ligne affiche le statut de la tâche.</li>
+<li>Un panneau latéral affiche les tâches ouvertes et le prochain examen du cours.</li>
+</ol>
+<p><strong>Résultat :</strong> les notes et le planning sont connectés.</p>
+<p><strong>Points ouverts :</strong> la syntaxe d'une ligne de tâche ; ce qui se passe quand l'étudiant supprime la ligne (règle N-R3).</p>
+
+<h3>P5. Ajouter un examen</h3>
+<p><strong>Déclencheur :</strong> l'enseignant annonce un CC, un partiel ou un oral.</p>
+<ol>
+<li>Le saisir (« partiel compta 15/11 ») ou ouvrir le formulaire d'examen.</li>
+<li>Indiquer le type, la date et le coefficient (optionnel).</li>
+<li>L'app crée les tâches de révision avec les règles du type (règle E1).</li>
+<li>Le planificateur les planifie avant l'examen.</li>
+</ol>
+<p><strong>Résultat :</strong> la révision commence au bon moment, sans effort.</p>
+<p><strong>Points ouverts :</strong> les règles de révision ; la modification des tâches de révision générées (règle E3).</p>
+
+<h3>P6. Ajuster le planning</h3>
+<p><strong>Déclencheur :</strong> le planning ne correspond pas à la vraie journée.</p>
+<ol>
+<li>Déplacer un bloc (glisser dans le calendrier, ou « déplacer » dans la vue Aujourd'hui). Le bloc devient épinglé.</li>
+<li>Le planificateur replanifie les autres blocs autour, en dehors de la fenêtre de stabilité.</li>
+<li>Si le travail ne tient pas avant une échéance, l'app affiche une alerte de surcharge avec des actions.</li>
+</ol>
+<p><strong>Résultat :</strong> l'étudiant contrôle le planning. L'app fait toujours la planification.</p>
+<p><strong>Points ouverts :</strong> désépingler un bloc (règle B4) ; l'alerte après « accepter le risque » (règle S9).</p>
+
+<h3>P7. Changement d'emploi du temps</h3>
+<p><strong>Déclencheur :</strong> un cours est annulé ou déplacé, ou l'emploi du temps change.</p>
+<ul>
+<li><strong>Une séance :</strong> l'ouvrir, puis l'annuler ou la déplacer. Les autres semaines ne changent pas. Le planificateur utilise le nouveau créneau libre.</li>
+<li><strong>La règle :</strong> modifier le jour, l'heure ou la salle. Les séances futures changent. Les séances avec une exception ou une note ne changent pas. L'app affiche les conflits.</li>
+</ul>
+<p><strong>Résultat :</strong> l'emploi du temps reste juste, sans nouvelle saisie.</p>
+
+<h3>P8. Retrouver et réviser</h3>
+<p><strong>Déclencheur :</strong> l'étudiant cherche une note ou prépare un examen.</p>
+<ol>
+<li>Ouvrir la recherche. Écrire des mots. Ouvrir un résultat (note, tâche ou cours).</li>
+<li>Ou ouvrir un cours : ses séances avec notes, ses tâches et son prochain examen.</li>
+</ol>
+<p><strong>Résultat :</strong> les notes sont réutilisées (critère de succès 4).</p>
+
+<h3>P9. Voir la semaine</h3>
+<p><strong>Déclencheur :</strong> dimanche soir ou lundi matin.</p>
+<ol>
+<li>Ouvrir le calendrier de la semaine : séances, blocs, échéances, examens et alertes.</li>
+<li>Filtrer par cours si nécessaire.</li>
+<li>Ajuster le planning (P6).</li>
+</ol>
+<p><strong>Résultat :</strong> l'étudiant voit la charge avant le début de la semaine.</p>
+
+<h3>P10. Réglages et données</h3>
+<ul>
+<li><strong>Temps libre :</strong> le modifier. Le planificateur replanifie.</li>
+<li><strong>Restaurer, exporter, supprimer le compte :</strong> hors du MVP en libre-service. Le testeur envoie une demande. Un fondateur le fait avec un script d'administration (voir section 7.7).</li>
+</ul>
+
+<h2>6. User stories</h2>
+<p>Format de l'identifiant : lettre du domaine + numéro. Priorité : <strong>M</strong> = obligatoire (le MVP échoue sans elle), <strong>S</strong> = souhaitable (à faire si le temps le permet).</p>
+
+<h3>A — Compte et configuration</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>En tant qu'étudiant, je peux…</th><th>Critères d'acceptation</th><th>P</th></tr></thead>
+<tbody>
+<tr><td>A1</td><td>Créer un compte</td><td>Email et mot de passe. Moins d'une minute. Les erreurs s'affichent à côté du champ.</td><td>M</td></tr>
+<tr><td>A2</td><td>Créer un semestre</td><td>L'app propose les dates. J'indique la première semaine A. Un seul semestre actif.</td><td>M</td></tr>
+<tr><td>A3</td><td>Ajouter mes cours</td><td>Un nom et une couleur suffisent. Nom court et alias optionnels.</td><td>M</td></tr>
+<tr><td>A4</td><td>Régler mon temps libre</td><td>Accepter la valeur par défaut en un tap, ou modifier les jours, les heures et le maximum par jour.</td><td>M</td></tr>
+<tr><td>A5</td><td>Passer une étape de configuration</td><td>La vue Aujourd'hui affiche ce qui manque, avec un lien pour le terminer.</td><td>S</td></tr>
+</tbody>
+</table></div>
+
+<h3>T — Emploi du temps</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>En tant qu'étudiant, je peux…</th><th>Critères d'acceptation</th><th>P</th></tr></thead>
+<tbody>
+<tr><td>T1</td><td>Saisir une séance hebdomadaire</td><td>Une saisie pour le semestre. Cours, type (CM/TD/TP), groupe, jour, horaires, salle.</td><td>M</td></tr>
+<tr><td>T2</td><td>Choisir la récurrence</td><td>Chaque semaine, semaine A, semaine B, ou une période.</td><td>M</td></tr>
+<tr><td>T3</td><td>Annuler ou déplacer une seule séance</td><td>Les autres semaines ne changent pas. Le planificateur utilise le nouveau temps libre.</td><td>M</td></tr>
+<tr><td>T4</td><td>Modifier une règle de séance</td><td>Les séances futures changent. Les séances avec une exception ou une note ne changent pas. Je vois les conflits.</td><td>M</td></tr>
+<tr><td>T5</td><td>Voir ma semaine</td><td>Calendrier de la semaine avec séances, blocs, échéances, examens. Filtre par cours.</td><td>M</td></tr>
+<tr><td>T6</td><td>Marquer une semaine sans cours</td><td>Les semaines de vacances ne changent pas l'ordre A/B.</td><td>S</td></tr>
+</tbody>
+</table></div>
+
+<h3>K — Tâches et examens</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>En tant qu'étudiant, je peux…</th><th>Critères d'acceptation</th><th>P</th></tr></thead>
+<tbody>
+<tr><td>K1</td><td>Saisir une tâche en une ligne</td><td>« DM compta vendredi » donne le cours, le type et la date en pastilles. Un tap corrige une pastille. Entrée enregistre.</td><td>M</td></tr>
+<tr><td>K2</td><td>Ouvrir la saisie depuis chaque écran</td><td>Un bouton toujours visible. Cmd+K.</td><td>M</td></tr>
+<tr><td>K3</td><td>Modifier une tâche</td><td>Titre, cours, type, échéance, estimation, priorité. Le planificateur replanifie.</td><td>M</td></tr>
+<tr><td>K4</td><td>Terminer une tâche en avance</td><td>Les blocs restants sont supprimés.</td><td>M</td></tr>
+<tr><td>K5</td><td>Demander plus de temps</td><td>Quand le travail prévu est fait et que la tâche n'est pas terminée : +30 min, +1 h, +2 h.</td><td>M</td></tr>
+<tr><td>K6</td><td>Ajouter un examen</td><td>Type (CC, partiel, oral), date, coefficient. Les tâches de révision apparaissent avant l'examen.</td><td>M</td></tr>
+<tr><td>K7</td><td>Modifier les tâches de révision</td><td>Je peux modifier ou supprimer une tâche de révision générée.</td><td>S</td></tr>
+<tr><td>K8</td><td>Voir les tâches sans date</td><td>Une liste « Sans date ». Ces tâches ne sont pas planifiées.</td><td>S</td></tr>
+</tbody>
+</table></div>
+
+<h3>P — Planification</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>En tant qu'étudiant, je peux…</th><th>Critères d'acceptation</th><th>P</th></tr></thead>
+<tbody>
+<tr><td>P1</td><td>Voir mon planning du jour</td><td>Séances, blocs, échéances sur un seul écran. Écran par défaut.</td><td>M</td></tr>
+<tr><td>P2</td><td>Savoir pourquoi un bloc est là</td><td>Chaque bloc affiche une raison. Exemple : « Pour vendredi, 2 h restantes ».</td><td>M</td></tr>
+<tr><td>P3</td><td>Marquer un bloc comme fait</td><td>Un tap. Le temps passé est optionnel.</td><td>M</td></tr>
+<tr><td>P4</td><td>Passer un bloc</td><td>Le travail est replanifié. Pas de liste rouge.</td><td>M</td></tr>
+<tr><td>P5</td><td>Déplacer un bloc</td><td>Le bloc reste où je l'ai mis (épinglé).</td><td>M</td></tr>
+<tr><td>P6</td><td>Désépingler un bloc</td><td>Le planificateur peut de nouveau le déplacer.</td><td>S</td></tr>
+<tr><td>P7</td><td>Faire confiance aux prochaines 24 h</td><td>Les blocs dans la fenêtre de stabilité ne bougent pas, sauf si je passe ou déplace un bloc.</td><td>M</td></tr>
+<tr><td>P8</td><td>Voir quand j'ai trop de travail</td><td>L'app affiche l'échéance à risque et propose des actions.</td><td>M</td></tr>
+<tr><td>P9</td><td>Savoir quand je repousse trop</td><td>Après 3 replanifications d'une tâche, l'app me prévient <span class="tag">proposition</span>.</td><td>S</td></tr>
+</tbody>
+</table></div>
+
+<h3>N — Notes</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>En tant qu'étudiant, je peux…</th><th>Critères d'acceptation</th><th>P</th></tr></thead>
+<tbody>
+<tr><td>N1</td><td>Prendre des notes pour une séance</td><td>Un tap sur une séance ouvre sa note. Elle est liée à la séance et au cours.</td><td>M</td></tr>
+<tr><td>N2</td><td>Écrire des notes de cours et des notes libres</td><td>Les notes de cours sont dans la page du cours. Les notes libres n'ont pas de cours.</td><td>M</td></tr>
+<tr><td>N3</td><td>Ajouter une tâche depuis une note</td><td>Une ligne de tâche crée une vraie tâche avec le cours de la note. Elle va dans le planning. La ligne affiche le statut.</td><td>M</td></tr>
+<tr><td>N4</td><td>Voir le contexte du cours</td><td>La note affiche les tâches ouvertes et le prochain examen de son cours.</td><td>S</td></tr>
+<tr><td>N6</td><td>Ne pas perdre une note</td><td>Sauvegarde automatique. Un brouillon local est gardé si le réseau coupe. Si la note a changé dans un autre onglet, l'app le dit et n'écrase rien.</td><td>M</td></tr>
+</tbody>
+</table></div>
+
+<h3>X — Fonctions transverses</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>En tant qu'étudiant, je peux…</th><th>Critères d'acceptation</th><th>P</th></tr></thead>
+<tbody>
+<tr><td>X1</td><td>Tout retrouver</td><td>La recherche trouve les notes, les tâches et les cours. Résultats en moins d'une seconde.</td><td>M</td></tr>
+<tr><td>X3</td><td>Récupérer un élément supprimé, mes données, ou supprimer mon compte</td><td>Je fais une demande. Un fondateur le fait à la main dans les 48 h (script d'administration). Libre-service hors du MVP.</td><td>M</td></tr>
+<tr><td>X8</td><td>Voir des données à jour dans chaque onglet</td><td>Quand je reviens dans un onglet, il recharge ses données.</td><td>M</td></tr>
+</tbody>
+</table></div>
+
+<h2>7. Règles métier</h2>
+
+<h3>7.1 Planificateur</h3>
+<figure>
+<svg viewBox="0 0 760 270" role="img" aria-label="Entrées et sorties du planificateur" fill="none" stroke="currentColor" font-family="sans-serif" font-size="13">
+<defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor" stroke="none"/></marker></defs>
+<rect x="10" y="10" width="190" height="36" rx="6"/><text x="105" y="33" text-anchor="middle" fill="currentColor" stroke="none">Tâches (travail restant)</text>
+<rect x="10" y="60" width="190" height="36" rx="6"/><text x="105" y="83" text-anchor="middle" fill="currentColor" stroke="none">Séances</text>
+<rect x="10" y="110" width="190" height="36" rx="6"/><text x="105" y="133" text-anchor="middle" fill="currentColor" stroke="none">Règles de temps libre</text>
+<rect x="10" y="160" width="190" height="36" rx="6"/><text x="105" y="183" text-anchor="middle" fill="currentColor" stroke="none">Blocs épinglés + fenêtre</text>
+<rect x="10" y="210" width="190" height="36" rx="6"/><text x="105" y="233" text-anchor="middle" fill="currentColor" stroke="none">Planning précédent + date</text>
+<rect x="290" y="95" width="180" height="66" rx="8" stroke-width="2"/><text x="380" y="122" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">Planificateur</text><text x="380" y="142" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">fonction pure</text>
+<line x1="200" y1="28" x2="288" y2="110" marker-end="url(#a3)"/>
+<line x1="200" y1="78" x2="288" y2="118" marker-end="url(#a3)"/>
+<line x1="200" y1="128" x2="288" y2="128" marker-end="url(#a3)"/>
+<line x1="200" y1="178" x2="288" y2="140" marker-end="url(#a3)"/>
+<line x1="200" y1="228" x2="288" y2="150" marker-end="url(#a3)"/>
+<rect x="560" y="70" width="190" height="44" rx="6"/><text x="655" y="90" text-anchor="middle" fill="currentColor" stroke="none">Blocs de travail</text><text x="655" y="106" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">avec leur raison</text>
+<rect x="560" y="140" width="190" height="44" rx="6"/><text x="655" y="160" text-anchor="middle" fill="currentColor" stroke="none">Rapport de risque</text><text x="655" y="176" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">échéance + temps manquant</text>
+<line x1="470" y1="118" x2="558" y2="94" marker-end="url(#a3)"/>
+<line x1="470" y1="140" x2="558" y2="160" marker-end="url(#a3)"/>
+</svg>
+<figcaption>Figure 3. Le planificateur. Même entrée, même sortie. Il ne lit ni l'horloge ni la base de données.</figcaption>
+</figure>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Règle</th></tr></thead>
+<tbody>
+<tr><td>S1</td><td>Les blocs vont seulement dans le temps libre, hors des séances, et avant l'échéance de la tâche.</td></tr>
+<tr><td>S2</td><td>Ordre : échéance la plus proche d'abord, puis priorité. S2 donne l'ordre de traitement des tâches. S12 donne l'endroit des blocs.</td></tr>
+<tr><td>S3</td><td>Durée d'un bloc : minimum 30 min, maximum 90 min <span class="tag">proposition</span>. Une tâche de plus de 90 min reçoit plusieurs blocs.</td></tr>
+<tr><td>S4</td><td>Maximum par jour selon les réglages du temps libre. Par défaut 3 h <span class="tag">proposition</span>.</td></tr>
+<tr><td>S5</td><td>Les blocs épinglés ne bougent jamais.</td></tr>
+<tr><td>S6</td><td>Fenêtre de stabilité : les blocs des prochaines 24 h ne bougent pas <span class="tag">proposition</span>. Exceptions : l'étudiant passe ou déplace un bloc, ou une séance dans la fenêtre change.</td></tr>
+<tr><td>S7</td><td>Hors de la fenêtre, un bloc reste à sa place s'il est encore valide. Cela limite les changements.</td></tr>
+<tr><td>S8</td><td>Déclencheurs : modification d'une tâche, d'un examen, d'une séance ou du temps libre ; un bloc passé ou déplacé ; l'ouverture de l'app (rattrapage, B3). Pas de tâche planifiée.</td></tr>
+<tr><td>S9</td><td>Surcharge : pour une échéance, le travail dû avant elle est plus grand que le temps libre avant elle. L'app affiche l'échéance et le temps manquant. Actions : réduire l'estimation, supprimer une tâche, ajouter du temps libre, accepter le risque. Après « accepter le risque », l'alerte revient seulement si le temps manquant augmente.</td></tr>
+<tr><td>S10</td><td>Chaque bloc a une raison : l'échéance et le travail restant.</td></tr>
+<tr><td>S11</td><td>Chaque replanification d'une tâche augmente <code>replanCount</code>. À 3, l'app prévient l'étudiant (P9).</td></tr>
+<tr><td>S12</td><td>Placement : pour chaque tâche (ordre S2), le planificateur met les blocs dans le premier temps libre valide, à partir de la date de début de la tâche (S15). La limite S13 étale le travail sur plusieurs jours. Résultat : le travail commence tôt, et un retard garde de la marge.</td></tr>
+<tr><td>S13</td><td>Limite par tâche et par jour : 1 bloc, donc 90 min au maximum <span class="tag">proposition</span>. Exception : si la limite empêche de finir avant l'échéance, le planificateur peut mettre un 2<sup>e</sup> bloc le même jour. Il fait cela seulement les derniers jours avant l'échéance.</td></tr>
+<tr><td>S14</td><td>Marge : le planificateur essaie de finir une tâche 1 jour avant son échéance <span class="tag">proposition</span>. Si le temps manque, il utilise le dernier jour. S9 (surcharge) utilise l'échéance réelle, pas la marge.</td></tr>
+<tr><td>S15</td><td>Date de début : une tâche peut avoir une date <code>notBefore</code>. Les blocs ne vont pas avant cette date. Les tâches de révision l'utilisent : la date de l'examen moins la fenêtre de la règle (E1).</td></tr>
+</tbody>
+</table></div>
+
+<h3>7.2 Blocs de travail</h3>
+<figure>
+<svg viewBox="0 0 760 220" role="img" aria-label="États d'un bloc : prévu vers fait, passé ou manqué" fill="none" stroke="currentColor" font-family="sans-serif" font-size="13">
+<defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor" stroke="none"/></marker></defs>
+<rect x="20" y="85" width="140" height="46" rx="23" stroke-width="2"/><text x="90" y="113" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">prévu</text>
+<rect x="290" y="15" width="130" height="40" rx="20"/><text x="355" y="40" text-anchor="middle" fill="currentColor" stroke="none">fait</text>
+<rect x="290" y="88" width="130" height="40" rx="20"/><text x="355" y="113" text-anchor="middle" fill="currentColor" stroke="none">passé</text>
+<rect x="290" y="161" width="130" height="40" rx="20"/><text x="355" y="186" text-anchor="middle" fill="currentColor" stroke="none">manqué</text>
+<line x1="160" y1="100" x2="288" y2="38" marker-end="url(#a4)"/><text x="215" y="58" fill="currentColor" stroke="none" font-size="12">fait</text>
+<line x1="160" y1="108" x2="288" y2="108" marker-end="url(#a4)"/><text x="200" y="102" fill="currentColor" stroke="none" font-size="12">passer</text>
+<line x1="160" y1="118" x2="288" y2="178" marker-end="url(#a4)"/><text x="120" y="202" fill="currentColor" stroke="none" font-size="12">passé, sans action</text>
+<rect x="530" y="115" width="220" height="56" rx="6"/><text x="640" y="138" text-anchor="middle" fill="currentColor" stroke="none">Le travail retourne à la tâche</text><text x="640" y="157" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">le planificateur replanifie</text>
+<line x1="420" y1="110" x2="528" y2="135" marker-end="url(#a4)"/>
+<line x1="420" y1="180" x2="528" y2="155" marker-end="url(#a4)"/>
+<path d="M60 85 C40 40 130 40 115 83" marker-end="url(#a4)"/><text x="30" y="30" fill="currentColor" stroke="none" font-size="12">déplacer → épinglé</text>
+</svg>
+<figcaption>Figure 4. États d'un bloc. « Épinglé » est une propriété, pas un état.</figcaption>
+</figure>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Règle</th></tr></thead>
+<tbody>
+<tr><td>B1</td><td>États : <code>planned</code> (prévu), <code>done</code> (fait), <code>skipped</code> (passé), <code>missed</code> (manqué). Seuls les blocs <code>planned</code> peuvent changer.</td></tr>
+<tr><td>B2</td><td>Un bloc fait compte son temps passé. Si l'étudiant ne donne pas de valeur, il compte le temps prévu.</td></tr>
+<tr><td>B3</td><td>Rattrapage à l'ouverture de l'app (au plus une fois par heure) : les blocs <code>planned</code> terminés dans le passé deviennent <code>missed</code>, puis le planificateur replanifie. Le message est neutre : « 3 blocs ont été déplacés plus tard ».</td></tr>
+<tr><td>B4</td><td>Un bloc déplacé est épinglé. L'étudiant peut le désépingler (P6).</td></tr>
+<tr><td>B5</td><td>Un bloc dans le passé ne peut pas être déplacé.</td></tr>
+</tbody>
+</table></div>
+
+<h3>7.3 Tâches et examens</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Règle</th></tr></thead>
+<tbody>
+<tr><td>K-R1</td><td>États : <code>todo</code> (à faire), <code>in_progress</code> (premier bloc fait), <code>done</code> (terminée).</td></tr>
+<tr><td>K-R2</td><td>Travail restant = estimation − temps des blocs faits.</td></tr>
+<tr><td>K-R3</td><td>Travail restant ≤ 0 et tâche non terminée : l'app demande « Terminée ? » ou « Besoin de plus de temps ? » (K5).</td></tr>
+<tr><td>K-R4</td><td>Tâche terminée : les blocs prévus dans le futur sont supprimés.</td></tr>
+<tr><td>K-R5</td><td>Estimations par défaut <span class="tag">proposition</span> : DM 120 min, lecture 45 min, compte rendu de TP 180 min, exposé 180 min, révision 60 min. Ces valeurs sont des données (table <code>TaskType</code>), pas du code.</td></tr>
+<tr><td>K-R6</td><td>Une tâche sans échéance n'est pas planifiée. Elle est dans la liste « Sans date » (K8).</td></tr>
+<tr><td>K-R7</td><td>Une échéance sans heure signifie la fin de ce jour, 23:59 heure locale.</td></tr>
+<tr><td>E1</td><td>Règles de révision <span class="tag">proposition</span> : CC = 2 × 60 min dans les 5 jours avant ; partiel = 5 × 60 min dans les 14 jours avant ; oral = 2 × 60 min + 1 × 30 min de répétition dans les 7 jours avant. Ces règles sont des données (table <code>RevisionRule</code>). Chaque tâche de révision a une échéance (la veille de l'examen) et une date de début (S15).</td></tr>
+<tr><td>E2</td><td>La date de l'examen change : les tâches de révision se déplacent avec elle.</td></tr>
+<tr><td>E3</td><td>Une tâche de révision modifiée par l'étudiant n'est plus générée à nouveau.</td></tr>
+</tbody>
+</table></div>
+
+<h3>7.4 Analyseur de saisie rapide</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Règle</th></tr></thead>
+<tbody>
+<tr><td>C1</td><td>Normaliser : minuscules, sans accents. La casse et les accents ne changent pas le résultat.</td></tr>
+<tr><td>C2</td><td>Dates : aujourd'hui, demain, après-demain, noms de jours (le prochain), « le 12 », « 12/10 », « 12/10/2026 », « semaine prochaine », « dans 3 jours ». Heure optionnelle : « 14h », « 14h30 ».</td></tr>
+<tr><td>C3</td><td>Types : dm → devoir ; tp, compte rendu → compte rendu de TP ; exposé, oral, présentation → exposé ; lire, lecture → lecture ; réviser → révision ; cc, partiel, exam → examen.</td></tr>
+<tr><td>C4</td><td>Cours : alias ou nom court exact, puis début du nom, puis texte proche. Sous un seuil : pas de cours. Un mauvais cours est pire que pas de cours.</td></tr>
+<tr><td>C5</td><td>Pas de date trouvée : la tâche est enregistrée dans « Sans date ». La pastille affiche « Sans date », et un tap ouvre un sélecteur de date.</td></tr>
+<tr><td>C6</td><td>Les mots qui ne sont ni une date, ni un type, ni un cours forment le titre.</td></tr>
+<tr><td>C7</td><td>L'analyseur est une fonction pure. Chaque erreur d'analyse de la bêta devient un cas de test.</td></tr>
+</tbody>
+</table></div>
+
+<h3>7.5 Emploi du temps</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Règle</th></tr></thead>
+<tbody>
+<tr><td>T-R1</td><td>Une règle stocke l'heure locale et un fuseau horaire. Un cours à 10:00 reste à 10:00 après le passage à l'heure d'hiver.</td></tr>
+<tr><td>T-R2</td><td>L'app crée une ligne de séance pour chaque date du semestre, quand la règle est enregistrée.</td></tr>
+<tr><td>T-R3</td><td>Modification d'une règle : l'app recrée les séances futures. Une séance avec une exception ou une note est gardée. Elle est retrouvée par <code>(ruleId, originalStart)</code>.</td></tr>
+<tr><td>T-R4</td><td>La semaine A/B est calculée à partir de la première semaine A et des semaines sans cours (T6).</td></tr>
+</tbody>
+</table></div>
+
+<h3>7.6 Notes</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Règle</th></tr></thead>
+<tbody>
+<tr><td>N-R1</td><td>Une note stocke le JSON de l'éditeur et une copie en texte brut. Le serveur crée le texte brut.</td></tr>
+<tr><td>N-R2</td><td>Une ligne de tâche stocke seulement le <code>taskId</code>. Elle lit le titre et le statut depuis la tâche.</td></tr>
+<tr><td>N-R3</td><td>Supprimer une ligne de tâche : la tâche reste <span class="tag">proposition</span>. L'app affiche « Tâche gardée dans ton planning — Annuler / Supprimer la tâche ».</td></tr>
+<tr><td>N-R4</td><td>Une tâche supprimée ailleurs s'affiche comme « supprimée » dans la note.</td></tr>
+<tr><td>N-R5</td><td>Sauvegarde automatique après 1 à 2 s. Un brouillon local dans le navigateur. Contrôle de version : chaque sauvegarde envoie la <code>version</code> lue. Si elle a changé (autre onglet), l'API refuse (409). L'app affiche « Cette note a changé dans un autre onglet. Recharger ? ». Pas de fusion.</td></tr>
+</tbody>
+</table></div>
+
+<h3>7.7 Suppression et compte</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Règle</th></tr></thead>
+<tbody>
+<tr><td>D1</td><td>Supprimer = <code>deletedAt</code> est renseigné. L'élément n'est plus visible. Pas de purge automatique dans le MVP.</td></tr>
+<tr><td>D2</td><td>Supprimer un cours : ses tâches, notes et séances reçoivent le même <code>deletedAt</code> et le même <code>deletionId</code>. Un script peut les restaurer ensemble.</td></tr>
+<tr><td>D3</td><td>Scripts d'administration (CLI, pas d'écran) : restaurer par <code>deletionId</code>, exporter un espace en JSON, supprimer un compte et ses données.</td></tr>
+</tbody>
+</table></div>
+
+<h2>8. Écrans</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Écran</th><th>Contenu</th><th>Stories</th></tr></thead>
+<tbody>
+<tr><td>Onboarding</td><td>Étapes de P1, un écran chacune, barre de progression, possibilité de passer l'emploi du temps.</td><td>A1–A5</td></tr>
+<tr><td>Aujourd'hui (par défaut)</td><td>Chronologie du jour : séances, blocs avec raisons et actions, échéances. Alertes en haut. Bouton de saisie.</td><td>P1–P9, K5</td></tr>
+<tr><td>Semaine</td><td>Calendrier de la semaine, filtre par cours, glisser les blocs.</td><td>T5, P5, P6</td></tr>
+<tr><td>Saisie (superposée)</td><td>Un champ, des pastilles, les résultats de recherche en dessous.</td><td>K1, K2, X1</td></tr>
+<tr><td>Détail d'une tâche</td><td>Champs, blocs de la tâche, lien vers la note source.</td><td>K3, K4, K7</td></tr>
+<tr><td>Formulaire d'examen</td><td>Type, date, coefficient, aperçu des tâches de révision.</td><td>K6</td></tr>
+<tr><td>Page d'un cours</td><td>Séances avec notes, notes de cours, tâches, prochain examen.</td><td>N2, P8</td></tr>
+<tr><td>Éditeur de note</td><td>Éditeur, lignes de tâche, panneau latéral avec le contexte du cours.</td><td>N1–N4, N6</td></tr>
+<tr><td>Éditeur d'emploi du temps</td><td>Liste des règles de séance, formulaire, conflits.</td><td>T1–T4, T6</td></tr>
+<tr><td>Réglages</td><td>Temps libre, fuseau horaire, lien « faire une demande » (données, compte).</td><td>A4, X3</td></tr>
+</tbody>
+</table></div>
+
+<h2>9. Modèle de données</h2>
+<p>Objectif : un modèle modulaire. Une nouvelle fonction ajoute un module, des tables ou un consommateur d'événements. Elle ne réécrit pas les tables existantes.</p>
+
+<h3>9.1 Principes</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Principe</th></tr></thead>
+<tbody>
+<tr><td>M1</td><td><strong>Modules.</strong> Une base Postgres. Chaque module a son schéma Postgres, son client Prisma, ses migrations et son package. Un module ne lit jamais les tables d'un autre module : il utilise le service de ce module (injecté). <strong>Pas de clé étrangère entre modules</strong> : un module garde l'ID, et le code vérifie l'ID avec le service de l'autre module. Les clés étrangères dans un même module sont normales.</td></tr>
+<tr><td>M2</td><td><strong>Colonnes communes</strong> sur chaque table de contenu : <code>id</code> (UUIDv7, triable par date), <code>workspaceId</code>, <code>createdAt</code>, <code>updatedAt</code>, <code>createdById</code>, <code>deletedAt</code>, <code>deletionId</code>.</td></tr>
+<tr><td>M3</td><td><strong>L'espace (<code>Workspace</code>) est la frontière des données.</strong> Chaque requête filtre par <code>workspaceId</code> et <code>deletedAt IS NULL</code>, avec un seul helper. Le MVP a seulement des espaces personnels. Les groupes seront un nouveau <code>kind</code> d'espace, sans changement sur les tables de contenu.</td></tr>
+<tr><td>M4</td><td><strong>La configuration est une donnée.</strong> Types de tâches, règles de révision et réglages du planificateur sont des tables, remplies avec des valeurs par défaut à la création de l'espace. Changer une valeur ne demande pas de déploiement.</td></tr>
+<tr><td>M5</td><td><strong>Liens génériques.</strong> Une table <code>Link</code> relie deux entités de modules différents (note → tâche aujourd'hui ; note → note, document → note, carte → note plus tard). Les relations de propriété restent de vraies clés étrangères (bloc → tâche, tâche → cours).</td></tr>
+<tr><td>M6</td><td><strong>Changements entre modules, en mémoire.</strong> Après la validation (commit) d'une écriture, le module appelle un notificateur injecté (<code>ChangeNotifier</code>). <code>services/api</code> le relie au planificateur. Pas de table d'événements, pas de worker. Si la replanification échoue, la modification reste ; la prochaine modification ou la prochaine ouverture de l'app replanifie.</td></tr>
+<tr><td>M7</td><td><strong>Temps.</strong> Instants en UTC (<code>timestamptz</code>). Règles récurrentes en heure locale + fuseau IANA. Jours sans heure en <code>date</code>.</td></tr>
+<tr><td>M8</td><td><strong>Enum ou table.</strong> Enum Postgres pour les états que le code teste (<code>status</code>). Table pour les listes que l'utilisateur ou la configuration peut étendre (types de tâches).</td></tr>
+<tr><td>M9</td><td><strong>JSON seulement pour les charges utiles</strong> : contenu d'une note, charge d'un événement, paramètres d'une raison, rapport de risque. Pas de colonne <code>meta</code> générique sur les tables métier.</td></tr>
+<tr><td>M10</td><td><strong>Origine externe.</strong> <code>source</code> + <code>externalId</code> sur les séances et les tâches. L'import ICS ou Moodle viendra plus tard sans migration de structure.</td></tr>
+<tr><td>M11</td><td><strong>Noms.</strong> Les séances de cours s'appellent <code>ClassSession</code> et <code>ClassSessionRule</code>. Les tables d'authentification s'appellent <code>Auth*</code>. Cela évite le conflit avec la « session » de Better Auth.</td></tr>
+</tbody>
+</table></div>
+
+<figure>
+<svg viewBox="0 0 760 300" role="img" aria-label="Modules et sens des dépendances" fill="none" stroke="currentColor" font-family="sans-serif" font-size="13">
+<defs><marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor" stroke="none"/></marker></defs>
+<rect x="280" y="240" width="200" height="44" rx="6" stroke-width="2"/><text x="380" y="260" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">identity</text><text x="380" y="276" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">User, Workspace, Membership</text>
+<rect x="280" y="165" width="200" height="44" rx="6"/><text x="380" y="185" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">academic</text><text x="380" y="201" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Semester, Course, ClassSession</text>
+<rect x="120" y="90" width="200" height="44" rx="6"/><text x="220" y="110" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">work</text><text x="220" y="126" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Task, Exam, TaskType</text>
+<rect x="440" y="90" width="200" height="44" rx="6"/><text x="540" y="110" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">notes</text><text x="540" y="126" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Note</text>
+<rect x="120" y="15" width="200" height="44" rx="6"/><text x="220" y="35" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">planning</text><text x="220" y="51" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">FreeTimeRule, WorkBlock, PlanRun</text>
+<rect x="580" y="165" width="170" height="119" rx="6" stroke-dasharray="5 4"/><text x="665" y="190" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">platform</text><text x="665" y="214" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Link, Deletion</text><text x="665" y="232" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">ActivityEvent</text><text x="665" y="266" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">utilisé par tous</text>
+<line x1="380" y1="209" x2="380" y2="238" marker-end="url(#a5)"/>
+<line x1="220" y1="134" x2="330" y2="163" marker-end="url(#a5)"/>
+<line x1="540" y1="134" x2="430" y2="163" marker-end="url(#a5)"/>
+<line x1="220" y1="59" x2="220" y2="88" marker-end="url(#a5)"/>
+<path d="M320 37 C420 37 420 150 400 163" marker-end="url(#a5)"/>
+<line x1="440" y1="112" x2="322" y2="112" stroke-dasharray="4 3" marker-end="url(#a5)"/><text x="381" y="104" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Link</text>
+</svg>
+<figcaption>Figure 5. Modules. Une flèche = « peut appeler le service de » (par injection). Jamais dans l'autre sens. Aucune flèche n'est une clé étrangère. La flèche pointillée = lien stocké dans la table <code>Link</code>.</figcaption>
+</figure>
+
+<h3>9.2 Tables du MVP</h3>
+<p>Les colonnes communes (M2) ne sont pas répétées.</p>
+
+<h4>identity</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Champs</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>User</td><td>email (unique), name, timezone (défaut <code>Europe/Paris</code>), locale</td><td>Pas de <code>workspaceId</code>.</td></tr>
+<tr><td>Auth* (Better Auth)</td><td>AuthSession, AuthAccount, AuthVerification</td><td>Gérées par la bibliothèque.</td></tr>
+<tr><td>Workspace</td><td>kind (<code>personal</code> | <code>group</code>), name, ownerId</td><td>MVP : <code>personal</code> seulement.</td></tr>
+<tr><td>Membership</td><td>workspaceId, userId, role (<code>owner</code> | <code>editor</code> | <code>viewer</code>)</td><td>Unique (workspaceId, userId).</td></tr>
+</tbody>
+</table></div>
+
+<h4>academic</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Champs</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Semester</td><td>name, startDate, endDate, firstWeekA (date), isActive</td><td>Un seul actif par espace (index partiel).</td></tr>
+<tr><td>NoClassWeek</td><td>semesterId, weekStart (date), label</td><td>T6, T-R4.</td></tr>
+<tr><td>Course</td><td>semesterId, name, shortName, aliases (text[]), color, ects?</td><td>Index <code>pg_trgm</code> sur name.</td></tr>
+<tr><td>ClassSessionRule</td><td>courseId, sessionType (<code>CM</code> | <code>TD</code> | <code>TP</code> | <code>other</code>), groupLabel, weekday, startLocal, endLocal, timezone, weekPattern (<code>every</code> | <code>A</code> | <code>B</code>), validFrom, validTo, room, source, externalId</td><td>T1, T2, T-R1.</td></tr>
+<tr><td>ClassSession</td><td>courseId, ruleId?, originalStart?, start, end, room, status (<code>scheduled</code> | <code>cancelled</code>), isException, source, externalId</td><td>Unique (ruleId, originalStart). <code>ruleId</code> nul = séance ponctuelle.</td></tr>
+</tbody>
+</table></div>
+
+<h4>work</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Champs</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>TaskType</td><td>key, label, defaultEstimateMin, aliases (text[]), isSystem</td><td>K-R5. L'analyseur lit <code>aliases</code> (C3).</td></tr>
+<tr><td>Task</td><td>courseId?, typeId, title, deadline?, notBefore?, estimateMin, priority, status (<code>todo</code> | <code>in_progress</code> | <code>done</code>), completedAt, replanCount, origin (<code>manual</code> | <code>capture</code> | <code>note</code> | <code>exam_rule</code> | <code>import</code>), examId?, userModifiedAt?, source, externalId</td><td><code>userModifiedAt</code> renseigné = le générateur ne touche plus la tâche (E3).</td></tr>
+<tr><td>Exam</td><td>courseId, examType (<code>cc</code> | <code>partiel</code> | <code>oral</code> | <code>other</code>), title, startsAt, durationMin?, weight?</td><td>Table séparée : les notes / moyennes s'y attacheront plus tard.</td></tr>
+<tr><td>RevisionRule</td><td>examType, windowDays</td><td>E1. Une règle par type d'examen et par espace.</td></tr>
+<tr><td>RevisionRuleStep</td><td>ruleId, position, count, durationMin, label</td><td>Exemple oral : (2 × 60, « Révision »), (1 × 30, « Répétition »).</td></tr>
+</tbody>
+</table></div>
+
+<h4>planning</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Champs</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>FreeTimeRule</td><td>userId, weekday, startLocal, endLocal</td><td>A4.</td></tr>
+<tr><td>PlannerSettings</td><td>userId, maxMinPerDay, blockMinMin, blockMaxMin, maxBlocksPerTaskPerDay, bufferDays, stabilityWindowH, replanWarnAt, lastCatchUpAt</td><td>Une ligne par personne. Valeurs <span class="tag">proposition</span> de S3, S4, S6, S11, S13, S14. <code>lastCatchUpAt</code> : dernier rattrapage (B3).</td></tr>
+<tr><td>WorkBlock</td><td>taskId, start, end, status (<code>planned</code> | <code>done</code> | <code>skipped</code> | <code>missed</code>), statusChangedAt, pinned, spentMin?, reasonCode, reasonParams (json), planRunId, moveCount</td><td>La raison est un code + des paramètres. L'interface fait le texte.</td></tr>
+<tr><td>PlanRun</td><td>trigger, plannerVersion, inputHash, durationMs, blocksCreated, blocksMoved, blocksDeleted, riskReport (json)</td><td>Chaque exécution du planificateur. Sert au débogage et à la mesure de stabilité.</td></tr>
+<tr><td>OverloadAck</td><td>taskId, acceptedMissingMin, acceptedAt</td><td>S9 : l'alerte revient si le temps manquant dépasse la valeur acceptée.</td></tr>
+</tbody>
+</table></div>
+
+<h4>notes</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Champs</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Note</td><td>kind (<code>session</code> | <code>course</code> | <code>free</code>), courseId?, classSessionId?, title, content (json), contentSchemaVersion, plainText, searchVector (généré), version, lastOpenedAt</td><td><code>version</code> = contrôle optimiste (N-R5). <code>contentSchemaVersion</code> permet de migrer le JSON de l'éditeur.</td></tr>
+</tbody>
+</table></div>
+
+<h4>platform</h4>
+<div class="table-wrap"><table>
+<thead><tr><th>Table</th><th>Champs</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Link</td><td>sourceType, sourceId, targetType, targetId, kind</td><td>Remplace <code>NoteTask</code>. Pas de clé étrangère (comme entre modules). MVP : (note → task, <code>task_line</code>). Le serveur recalcule ces liens à chaque sauvegarde de la note. Unique sur les 5 champs. Index sur la cible (rétroliens plus tard).</td></tr>
+<tr><td>ActivityEvent</td><td>userId, name, properties (json), occurredAt</td><td>Mesures envoyées par le client (section 11). Remplace PostHog.</td></tr>
+<tr><td>Deletion</td><td>rootType, rootId, actorId</td><td>D2 : les lignes supprimées ensemble partagent ce <code>deletionId</code>.</td></tr>
+</tbody>
+</table></div>
+
+<h3>9.3 Fonctions futures : comment elles se branchent</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Fonction</th><th>Ajout</th><th>Tables existantes modifiées</th></tr></thead>
+<tbody>
+<tr><td>Groupes, projets</td><td><code>Workspace.kind = group</code>, invitations, rôles. Module <code>projects</code> (Project, Column) ; <code>Task.projectId?</code></td><td>Task : 1 colonne optionnelle</td></tr>
+<tr><td>Kanban</td><td>Table <code>BoardPosition</code> (taskId, columnId, rank)</td><td>Aucune</td></tr>
+<tr><td>Liens <code>[[</code> et rétroliens</td><td>Nouveau <code>Link.kind = mention</code> (note → note)</td><td>Aucune</td></tr>
+<tr><td>PDF et annotations</td><td>Module <code>documents</code> (Document, Annotation) ; <code>Link</code> document → note</td><td>Aucune</td></tr>
+<tr><td>Flashcards, répétition espacée</td><td>Module <code>cards</code> (Card, Review) ; <code>Link</code> card → note</td><td>Aucune</td></tr>
+<tr><td>Notes / moyennes</td><td>Table <code>Grade</code> (examId, value, scale)</td><td>Aucune</td></tr>
+<tr><td>Commentaires, partage</td><td><code>Comment</code> et <code>ShareLink</code> sur (entityType, entityId)</td><td>Aucune</td></tr>
+<tr><td>Import ICS</td><td>Module d'import qui écrit avec <code>source = ics</code> et <code>externalId</code></td><td>Aucune</td></tr>
+<tr><td>Fin / copie de semestre</td><td>Service qui copie Course et ClassSessionRule vers un nouveau Semester</td><td>Aucune</td></tr>
+<tr><td>Corbeille, export en libre-service</td><td>Écrans au-dessus de <code>Deletion</code> et du script d'export (D3)</td><td>Aucune</td></tr>
+</tbody>
+</table></div>
+<p class="note">Compromis de <code>Link</code> : Postgres ne vérifie pas l'intégrité d'un lien générique. Le module <code>platform</code> vérifie l'existence des deux entités à l'écriture, et un test d'intégration contrôle les liens orphelins.</p>
+
+<h2>10. Architecture technique</h2>
+<p>Cette section donne les décisions techniques du MVP. Principe : le plus simple qui marche pour 2 testeurs, sans bloquer la suite.</p>
+
+<h3>10.1 Vue d'ensemble</h3>
+<figure>
+<svg viewBox="0 0 760 230" role="img" aria-label="Deux services et une base de données" fill="none" stroke="currentColor" font-family="sans-serif" font-size="13">
+<defs><marker id="a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="currentColor" stroke="none"/></marker></defs>
+<rect x="10" y="60" width="190" height="80" rx="8" stroke-width="2"/><text x="105" y="88" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">services/web</text><text x="105" y="108" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">React, React Router</text><text x="105" y="124" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">TanStack Query, hc&lt;Routes&gt;</text>
+<rect x="285" y="20" width="220" height="160" rx="8" stroke-width="2"/><text x="395" y="44" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">services/api</text><text x="395" y="62" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">Hono + Zod + Better Auth</text>
+<rect x="300" y="75" width="190" height="90" rx="6" stroke-dasharray="4 3"/><text x="395" y="95" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">modules (packages)</text><text x="395" y="115" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">identity · academic · work</text><text x="395" y="131" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">planning · notes · platform</text><text x="395" y="151" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">+ lib/planner, lib/capture-parser</text>
+<rect x="590" y="40" width="160" height="120" rx="8" stroke-width="2"/><text x="670" y="66" text-anchor="middle" fill="currentColor" stroke="none" font-weight="bold">PostgreSQL</text><text x="670" y="86" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">1 base</text><text x="670" y="102" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">1 schéma par module</text><text x="670" y="118" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">1 client Prisma</text><text x="670" y="134" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">par module</text>
+<line x1="200" y1="100" x2="283" y2="100" marker-end="url(#a6)"/><text x="242" y="92" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">HTTP</text><text x="242" y="120" text-anchor="middle" fill="currentColor" stroke="none" font-size="11">cookie</text>
+<line x1="505" y1="100" x2="588" y2="100" marker-end="url(#a6)"/>
+<text x="380" y="215" text-anchor="middle" fill="currentColor" stroke="none" font-size="12">Pas de worker, pas de tâche planifiée, pas d'email, pas de file de messages.</text>
+</svg>
+<figcaption>Figure 6. Deux services, une base. Le planificateur tourne dans l'API.</figcaption>
+</figure>
+
+<h3>10.2 Choix</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Domaine</th><th>Choix</th></tr></thead>
+<tbody>
+<tr><td>Runtime</td><td>Bun (dev, build, tests, production)</td></tr>
+<tr><td>Monorepo</td><td>Bun workspaces + Turborepo (cache pour lint, typecheck, tests)</td></tr>
+<tr><td>Backend</td><td>Hono. Validation des entrées avec Zod (<code>@hono/zod-validator</code>)</td></tr>
+<tr><td>Frontend ↔ backend</td><td>Hono RPC : chaque package frontend crée <code>hc&lt;ModuleRoutes&gt;</code> (import de type seulement). Les appels passent par TanStack Query (hooks par module).</td></tr>
+<tr><td>Frontend</td><td>React, Vite, React Router, TanStack Query, StyleX. Application web pour ordinateur (pas de mobile)</td></tr>
+<tr><td>Éditeur</td><td>TipTap, contenu en JSON, nœud de tâche personnalisé</td></tr>
+<tr><td>Base de données</td><td>PostgreSQL. Une base, un schéma Postgres par module, un client Prisma 7 (<code>@prisma/adapter-pg</code>) par module</td></tr>
+<tr><td>Migrations</td><td>Un dossier de migrations par module, avec son historique dans son schéma. Ordre d'exécution : identity, academic, work, planning, notes, platform</td></tr>
+<tr><td>Recherche</td><td>Recherche plein texte PostgreSQL (<code>french</code> + <code>unaccent</code>), <code>pg_trgm</code> pour les cours</td></tr>
+<tr><td>Authentification</td><td>Better Auth, email + mot de passe. Session par cookie sécurisé</td></tr>
+<tr><td>IDs</td><td>UUIDv7</td></tr>
+<tr><td>Temps</td><td>Temporal (polyfill). Fuseau par personne (défaut <code>Europe/Paris</code>). Heure locale pour les règles, UTC pour les instants</td></tr>
+<tr><td>Erreurs</td><td>Bibliothèque interne <code>lib/result</code> : <code>Result</code> et <code>Option</code>, copiés de <code>@punpun-dev/ts-result</code> et <code>ts-option</code>, puis étendus (union discriminée : <code>if / else</code> réduit le type)</td></tr>
+<tr><td>Configuration</td><td>Variables d'environnement validées par Zod au démarrage. Une variable manquante arrête l'app</td></tr>
+<tr><td>Journaux</td><td>Une ligne JSON par requête (utilisateur, route, durée, erreur). Pas d'outil de suivi d'erreurs pour le moment</td></tr>
+<tr><td>Mesure</td><td><code>ActivityEvent</code> et lecture des tables, requêtes SQL. Pas d'outil externe</td></tr>
+<tr><td>Lint et format</td><td>Biome, avec règles d'imports interdits (frontières des modules)</td></tr>
+<tr><td>Tests</td><td><code>bun:test</code>, voir 10.8</td></tr>
+<tr><td>Hébergement</td><td>À décider. Tout est en Docker, donc portable. Région UE</td></tr>
+<tr><td>Organisation</td><td>GitHub : projet, sprints, épopées, issues (flux actuel des fondateurs)</td></tr>
+</tbody>
+</table></div>
+
+<h3>10.3 Arborescence</h3>
+<pre><code>services/
+  api/                 serveur Hono. Seul endroit qui connaît tous les modules (injection)
+  web/                 application Vite + React : routeur, mise en page
+packages/
+  backend/
+    identity/ academic/ work/ planning/ notes/ platform/
+      prisma/          schéma + migrations du module
+      src/domain/      types et règles métier
+      src/application/ cas d'usage, ports (interfaces)
+      src/infrastructure/  dépôts Prisma
+      src/http/        routes Hono + schémas Zod
+      src/index.ts     fabrique du module + type des routes
+  frontend/
+    academic/ work/ planning/ notes/
+      src/api/         client hc&lt;ModuleRoutes&gt;
+      src/hooks/       hooks TanStack Query
+      src/components/  écrans et composants
+  lib/
+    planner/           planificateur pur, sans base
+    capture-parser/    analyseur de saisie pur
+    result/            Result + Option
+    time/              aides Temporal
+    ui/                composants communs + jetons StyleX
+    config/            tsconfig, Biome
+tests/architecture/    tests des frontières</code></pre>
+
+<h3>10.4 Règles de frontières</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Règle</th></tr></thead>
+<tbody>
+<tr><td>A1</td><td>Un module backend importe seulement les packages <code>lib/*</code> et ses propres fichiers. Il ne peut pas importer un autre module.</td></tr>
+<tr><td>A2</td><td>Un module parle à un autre module par un <em>port</em> (interface qu'il possède). <code>services/api</code> branche le port sur le service de l'autre module (injection de dépendances).</td></tr>
+<tr><td>A3</td><td>Un module utilise seulement son client Prisma. Pas de SQL vers le schéma d'un autre module.</td></tr>
+<tr><td>A4</td><td>Pas de clé étrangère entre modules. Un ID d'un autre module est vérifié par le port avant l'écriture (ex. <code>work</code> demande à <code>academic</code> : « ce cours existe-t-il dans cet espace ? »).</td></tr>
+<tr><td>A5</td><td>Les packages frontend importent le backend seulement avec <code>import type</code>.</td></tr>
+<tr><td>A6</td><td><code>lib/planner</code> et <code>lib/capture-parser</code> n'ont aucune entrée-sortie : pas de base, pas d'horloge, pas de réseau.</td></tr>
+<tr><td>A7</td><td>Contrôle : règles Biome (retour direct dans l'éditeur et pour les agents) + tests <code>tests/architecture</code> dans la CI (contrôle final).</td></tr>
+</tbody>
+</table></div>
+
+<h3>10.5 Replanification</h3>
+<ol>
+<li>Un cas d'usage écrit dans sa transaction (ex. <code>work</code> modifie une tâche) et valide.</li>
+<li>Après la validation, il appelle <code>ChangeNotifier.notify(workspaceId)</code> (M6).</li>
+<li><code>services/api</code> relie ce notificateur à <code>planning.replan(workspaceId)</code>. La replanification tourne dans sa propre transaction, avant la réponse HTTP. La réponse contient donc le nouveau planning.</li>
+<li>Si la replanification échoue : la modification reste, l'erreur va dans les journaux. La prochaine modification ou la prochaine ouverture de l'app replanifie.</li>
+<li>À l'ouverture de l'app (vue Aujourd'hui ou Semaine) : rattrapage B3 si <code>lastCatchUpAt</code> a plus d'une heure.</li>
+<li>Un seul calcul à la fois par espace : verrou Postgres (<code>pg_advisory_xact_lock</code>) sur l'espace.</li>
+</ol>
+<p class="note">Conséquence des clients Prisma séparés : une transaction ne couvre qu'un module. Exemple : une ligne de tâche dans une note crée la tâche (module <code>work</code>), puis sauvegarde la note (module <code>notes</code>). Si la note échoue, la tâche reste. C'est accepté (N-R3 garde déjà la tâche).</p>
+
+<h3>10.6 API</h3>
+<ul>
+<li>Routes : <code>/api/&lt;module&gt;/…</code>. Chaque module exporte ses routes Hono et leur type.</li>
+<li>Chaque entrée (corps, paramètres, requête) est validée par un schéma Zod. Les formulaires du frontend utilisent les mêmes schémas.</li>
+<li>Un middleware lit la session Better Auth et donne <code>userId</code> et <code>workspaceId</code> aux routes. Chaque dépôt filtre par <code>workspaceId</code> et <code>deletedAt IS NULL</code>.</li>
+<li>Erreurs : toujours <code>{ "error": { "code", "message" } }</code>. Un cas d'usage retourne un <code>Result</code> ; la route transforme l'erreur en code HTTP (400, 401, 404, 409).</li>
+<li>Les données d'un autre utilisateur donnent 404, comme une donnée absente.</li>
+</ul>
+
+<h3>10.7 Frontend</h3>
+<ul>
+<li><code>services/web</code> contient le routeur (React Router), la mise en page et l'assemblage. Chaque package <code>frontend/*</code> exporte ses pages et ses hooks.</li>
+<li>Toutes les données passent par TanStack Query. Après une modification, les requêtes concernées sont invalidées. Une modification de tâche, d'examen, de séance ou de temps libre invalide aussi le planning.</li>
+<li>Plusieurs onglets : un onglet recharge ses données quand l'utilisateur y revient (<code>refetchOnWindowFocus</code>). Pas de connexion en direct.</li>
+<li>Notes : conflit de version = message et rechargement (N-R5).</li>
+</ul>
+
+<h3>10.8 Tests</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Couche</th><th>Tests</th></tr></thead>
+<tbody>
+<tr><td><code>lib/planner</code>, <code>lib/capture-parser</code></td><td>Tests unitaires, tests par tableau, tests de propriétés (entrées générées au hasard, les règles doivent toujours tenir)</td></tr>
+<tr><td>Cas d'usage</td><td>Un test unitaire par cas, avec des dépôts et des ports factices</td></tr>
+<tr><td>Dépôts</td><td>Tests d'intégration sur une vraie base Postgres de test (nom qui finit par <code>_test</code>)</td></tr>
+<tr><td>Routes API</td><td>Un test par route, avec les erreurs : 400, 401, 404, données d'un autre utilisateur, 409</td></tr>
+<tr><td>Ports entre modules</td><td>Tests de contrat : le même jeu de tests passe sur le faux et sur le vrai adaptateur</td></tr>
+<tr><td>Frontend</td><td>Tests de composants et de hooks, et tests navigateur (Playwright) des parcours principaux : inscription, ajout d'une tâche, planning, note</td></tr>
+<tr><td>Architecture</td><td>Règles A1–A7</td></tr>
+</tbody>
+</table></div>
+<p>Objectif : la meilleure couverture possible. La CI bloque la fusion si la couverture des lignes est sous 90 %.</p>
+
+<h3>10.9 Développement et CI</h3>
+<ul>
+<li>Local : <code>docker compose up postgres</code>, puis <code>bun run dev</code> (API et web avec rechargement). Une base <code>_test</code> pour les tests.</li>
+<li>Un seul fichier <code>.env</code> à la racine, avec un <code>.env.example</code>.</li>
+<li>CI (GitHub Actions) à chaque pull request : lint, typecheck, tests unitaires, tests d'intégration (Postgres en service), tests d'architecture, seuil de couverture. Turborepo ne relance que ce qui a changé.</li>
+<li>Livraison : une image Docker pour l'API, une pour le web, une étape de migration (tous les modules, dans l'ordre de 10.2). Hébergement à décider.</li>
+</ul>
+
+<h2>11. Événements produit</h2>
+<p>Tout est en base de données. Pas de suivi par un tiers, donc pas de bandeau de consentement.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Événement</th><th>Propriétés</th><th>Table</th></tr></thead>
+<tbody>
+<tr><td>onboarding_step_completed</td><td>step, duration_ms, skipped</td><td>ActivityEvent</td></tr>
+<tr><td>task_captured</td><td>source (capture, note, form), duration_ms, corrected_chips, parse_found (course, type, date)</td><td>ActivityEvent</td></tr>
+<tr><td>overload_shown / overload_action</td><td>action</td><td>ActivityEvent</td></tr>
+<tr><td>note_opened</td><td>note_age_days</td><td>ActivityEvent</td></tr>
+<tr><td>search_used</td><td>result_clicked</td><td>ActivityEvent</td></tr>
+<tr><td>Examens et tâches créés</td><td>examType, origin</td><td>Exam, Task (createdAt, origin)</td></tr>
+<tr><td>Blocs faits, passés, déplacés, manqués</td><td>durée prévue, spentMin</td><td>WorkBlock (status, statusChangedAt, moveCount)</td></tr>
+<tr><td>Stabilité du planning</td><td>blocs déplacés par exécution</td><td>PlanRun, WorkBlock.moveCount</td></tr>
+</tbody>
+</table></div>
+
+<h2>12. Critères de succès</h2>
+<p>Les testeurs utilisent le MVP pendant 2 semaines. Le MVP est un succès si ces objectifs sont atteints :</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Critère</th><th>Objectif</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Jours actifs par semaine, pour chaque testeur</td><td>3 ou plus</td><td>ActivityEvent, dates des tables</td></tr>
+<tr><td>Blocs faits / blocs prévus</td><td>50 % ou plus</td><td>WorkBlock</td></tr>
+<tr><td>Temps médian de saisie d'une tâche</td><td>5 ou 10 secondes (à décider)</td><td>task_captured</td></tr>
+<tr><td>Notes rouvertes après 7 jours</td><td>1 ou plus par testeur et par semaine</td><td>note_opened</td></tr>
+<tr><td>Tâches créées depuis une note</td><td>1 ou plus par testeur et par semaine</td><td>Task.origin = note</td></tr>
+<tr><td>Durée de l'onboarding</td><td>Moins de 5 minutes <span class="tag">proposition</span></td><td>onboarding_step_completed</td></tr>
+<tr><td>Testeurs qui veulent continuer</td><td>2 sur 2</td><td>Entretien</td></tr>
+</tbody>
+</table></div>
+<p>Si un objectif échoue, l'itération suivante corrige cette partie avant d'ajouter des fonctions.</p>
+
+<h2>13. Épopées et tâches</h2>
+<p>Les épopées sont groupées par fonction, sans calendrier. Chaque tâche donne ses références (stories, règles). Préfixe de l'ID = code de l'épopée.</p>
+<p><strong>Définition de « terminé » pour une tâche :</strong> code revu, tests écrits et verts dans la CI, événements de domaine émis, déployé sur l'environnement de test.</p>
+
+<h3>13.1 Vue d'ensemble et dépendances</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Code</th><th>Épopée</th><th>Stories / règles</th><th>Dépend de</th></tr></thead>
+<tbody>
+<tr><td>FND</td><td>Fondations</td><td>M1–M11, section 10</td><td>—</td></tr>
+<tr><td>ACC</td><td>Compte et onboarding</td><td>A1–A5, P1 (parcours)</td><td>FND</td></tr>
+<tr><td>ACA</td><td>Semestre et cours</td><td>A2, A3, T6, T-R4, D2</td><td>ACC</td></tr>
+<tr><td>TT</td><td>Emploi du temps</td><td>T1–T4, T-R1–T-R3</td><td>ACA</td></tr>
+<tr><td>SET</td><td>Temps libre et réglages</td><td>A4, X3</td><td>ACC</td></tr>
+<tr><td>TSK</td><td>Tâches</td><td>K3–K5, K8, K-R1–K-R7</td><td>ACA</td></tr>
+<tr><td>EXM</td><td>Examens et révisions</td><td>K6, K7, E1–E3</td><td>TSK</td></tr>
+<tr><td>CAP</td><td>Saisie rapide</td><td>K1, K2, C1–C7</td><td>TSK</td></tr>
+<tr><td>PLN</td><td>Planificateur (package pur)</td><td>S1–S7, S9, S10, S12–S15</td><td>— (peut commencer tout de suite)</td></tr>
+<tr><td>RUN</td><td>Exécution du planning</td><td>S8, S9, S11, B1–B5, P7, P9</td><td>PLN, TT, TSK, SET</td></tr>
+<tr><td>TOD</td><td>Vue Aujourd'hui</td><td>P1–P5, P8, K5</td><td>RUN</td></tr>
+<tr><td>WK</td><td>Vue Semaine</td><td>T5, P5, P6</td><td>RUN</td></tr>
+<tr><td>NOTE</td><td>Notes</td><td>N1–N4, N6, N-R1–N-R5</td><td>TT, TSK</td></tr>
+<tr><td>SRCH</td><td>Recherche</td><td>X1</td><td>NOTE, TSK</td></tr>
+<tr><td>OPS</td><td>Mesure et administration</td><td>Sections 11, 12, D3</td><td>FND</td></tr>
+</tbody>
+</table></div>
+
+<h3>FND — Fondations</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>FND-1</td><td>Monorepo Bun workspaces + Turborepo : <code>services/api</code>, <code>services/web</code>, packages de 10.3.</td><td>10.3</td></tr>
+<tr><td>FND-2</td><td>Application Hono : validation Zod, format d'erreur commun, client Hono RPC partagé.</td><td>Section 10</td></tr>
+<tr><td>FND-3</td><td>Prisma 7 + <code>adapter-pg</code> : un schéma Postgres, un client et un dossier de migrations par module. Script qui migre tous les modules dans l'ordre. Seed.</td><td>M1, 10.2</td></tr>
+<tr><td>FND-4</td><td>Colonnes communes, UUIDv7, helper de requête avec filtre <code>workspaceId</code> + <code>deletedAt</code>. Test : aucune requête sans ce filtre.</td><td>M2, M3</td></tr>
+<tr><td>FND-5</td><td><code>ChangeNotifier</code> après validation, branché dans <code>services/api</code>. Transaction par module (<code>runInTransaction</code>).</td><td>M6, 10.5</td></tr>
+<tr><td>FND-6</td><td>Helpers de temps (Temporal) : heure locale ↔ UTC, tests avec les changements d'heure.</td><td>M7, T-R1</td></tr>
+<tr><td>FND-7</td><td>Frontend : React, Vite, TanStack Query, StyleX, routes, mise en page (menu, Aujourd'hui par défaut), jetons de design.</td><td>Section 8</td></tr>
+<tr><td>FND-8</td><td>CI : lint, typecheck, <code>bun:test</code>, base Postgres de test.</td><td>Section 10</td></tr>
+<tr><td>FND-9</td><td>Images Docker (api, web, migration) et <code>compose.yaml</code> local. Hébergement à décider.</td><td>10.9</td></tr>
+<tr><td>FND-10</td><td><code>lib/result</code> : copier Result et Option, passer à une union discriminée, ajouter les aides manquantes. Tests.</td><td>10.2</td></tr>
+<tr><td>FND-11</td><td>Frontières : règles Biome + <code>tests/architecture</code> (A1–A7), avec un exemple qui échoue pour chaque règle.</td><td>10.4</td></tr>
+<tr><td>FND-12</td><td>Config validée par Zod au démarrage, journaux JSON par requête, format d'erreur commun.</td><td>10.2, 10.6</td></tr>
+<tr><td>FND-13</td><td>Seuil de couverture 90 % dans la CI, Playwright configuré.</td><td>10.8</td></tr>
+</tbody>
+</table></div>
+
+<h3>ACC — Compte et onboarding</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>ACC-1</td><td>Better Auth : inscription, connexion, déconnexion, mot de passe oublié. Tables <code>Auth*</code>.</td><td>A1, M11</td></tr>
+<tr><td>ACC-2</td><td>À l'inscription : créer User, Workspace personnel, Membership, UserSettings, et les valeurs par défaut (TaskType, RevisionRule, PlannerSettings).</td><td>M3, M4</td></tr>
+<tr><td>ACC-3</td><td>Parcours d'onboarding : un écran par étape, barre de progression, reprise après fermeture.</td><td>P1</td></tr>
+<tr><td>ACC-4</td><td>Étape passée : carte « à terminer » dans la vue Aujourd'hui, avec un lien.</td><td>A5</td></tr>
+<tr><td>ACC-5</td><td>États vides de chaque écran (pas de cours, pas d'emploi du temps, pas de tâches).</td><td>P1</td></tr>
+<tr><td>ACC-6</td><td>Événement <code>onboarding_step_completed</code>.</td><td>Section 11</td></tr>
+</tbody>
+</table></div>
+
+<h3>ACA — Semestre et cours</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>ACA-1</td><td>Semestre : dates proposées, première semaine A, un seul actif.</td><td>A2</td></tr>
+<tr><td>ACA-2</td><td>Semaines sans cours + fonction pure du calcul A/B, avec tests.</td><td>T6, T-R4</td></tr>
+<tr><td>ACA-3</td><td>Cours : nom, couleur, nom court, alias.</td><td>A3</td></tr>
+<tr><td>ACA-4</td><td>Page d'un cours : séances avec notes, notes de cours, tâches, examens.</td><td>N2, section 8</td></tr>
+<tr><td>ACA-5</td><td>Supprimer un cours en cascade avec un <code>deletionId</code>.</td><td>D1, D2</td></tr>
+</tbody>
+</table></div>
+
+<h3>TT — Emploi du temps</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>TT-1</td><td>Règles de séance : formulaire et API (type, groupe, jour, horaires, salle, récurrence, période).</td><td>T1, T2</td></tr>
+<tr><td>TT-2</td><td>Générer les <code>ClassSession</code> du semestre à l'enregistrement d'une règle.</td><td>T-R1, T-R2</td></tr>
+<tr><td>TT-3</td><td>Modifier une règle : recréer les séances futures, garder les exceptions et les séances avec note.</td><td>T4, T-R3</td></tr>
+<tr><td>TT-4</td><td>Annuler ou déplacer une seule séance. Émettre l'événement (replanification).</td><td>T3, P7</td></tr>
+<tr><td>TT-5</td><td>Détecter et afficher les conflits entre séances.</td><td>T4</td></tr>
+<tr><td>TT-6</td><td>Éditeur d'emploi du temps (liste des règles, formulaire, conflits).</td><td>Section 8</td></tr>
+</tbody>
+</table></div>
+
+<h3>SET — Temps libre et réglages</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>SET-1</td><td>Éditeur du temps libre : valeur par défaut en un tap, ou jours, heures et maximum par jour.</td><td>A4, S4</td></tr>
+<tr><td>SET-2</td><td><code>PlannerSettings</code> : API et valeurs par défaut. Pas d'écran, sauf le maximum par jour.</td><td>M4</td></tr>
+<tr><td>SET-3</td><td>Fuseau horaire de la personne (défaut Paris).</td><td>M7</td></tr>
+<tr><td>SET-4</td><td>Écran Réglages avec le lien « faire une demande » (données, compte).</td><td>X3</td></tr>
+</tbody>
+</table></div>
+
+<h3>TSK — Tâches</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>TSK-1</td><td><code>TaskType</code> : seed et API de lecture.</td><td>K-R5</td></tr>
+<tr><td>TSK-2</td><td>Tâche : créer, modifier, états, travail restant, échéance sans heure = 23:59 locale.</td><td>K3, K-R1, K-R2, K-R7</td></tr>
+<tr><td>TSK-3</td><td>Terminer une tâche en avance : supprimer les blocs futurs.</td><td>K4, K-R4</td></tr>
+<tr><td>TSK-4</td><td>Question « Terminée ? / +30 min, +1 h, +2 h » quand le travail restant ≤ 0.</td><td>K5, K-R3</td></tr>
+<tr><td>TSK-5</td><td>Liste « Sans date ».</td><td>K8, K-R6</td></tr>
+<tr><td>TSK-6</td><td>Détail d'une tâche : champs, blocs, lien vers la note source (via <code>Link</code>).</td><td>Section 8</td></tr>
+</tbody>
+</table></div>
+
+<h3>EXM — Examens et révisions</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>EXM-1</td><td>Table <code>Exam</code>, API, formulaire (type, date, coefficient).</td><td>K6</td></tr>
+<tr><td>EXM-2</td><td><code>RevisionRule</code> + <code>RevisionRuleStep</code> : seed des 3 règles.</td><td>E1, M4</td></tr>
+<tr><td>EXM-3</td><td>Générateur pur : examen + règle → tâches de révision avec <code>notBefore</code> et échéance. Tests.</td><td>E1, S15</td></tr>
+<tr><td>EXM-4</td><td>Date d'examen modifiée : régénérer, sauf les tâches avec <code>userModifiedAt</code>.</td><td>E2, E3</td></tr>
+<tr><td>EXM-5</td><td>Aperçu des révisions dans le formulaire, avant validation.</td><td>K6</td></tr>
+<tr><td>EXM-6</td><td>Modifier ou supprimer une tâche de révision générée.</td><td>K7, E3</td></tr>
+</tbody>
+</table></div>
+
+<h3>CAP — Saisie rapide</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>CAP-1</td><td>Package de l'analyseur : normalisation (minuscules, sans accents). Entrées : texte, date de référence, cours, types.</td><td>C1, C7</td></tr>
+<tr><td>CAP-2</td><td>Dates et heures relatives et absolues.</td><td>C2</td></tr>
+<tr><td>CAP-3</td><td>Types via <code>TaskType.aliases</code>.</td><td>C3</td></tr>
+<tr><td>CAP-4</td><td>Cours : alias, nom court, début du nom, texte proche, seuil.</td><td>C4</td></tr>
+<tr><td>CAP-5</td><td>Titre (mots restants) et cas « Sans date ».</td><td>C5, C6</td></tr>
+<tr><td>CAP-6</td><td>Tests par tableau. Procédure : chaque erreur de la bêta devient un cas.</td><td>C7</td></tr>
+<tr><td>CAP-7</td><td>Fenêtre de saisie : champ, pastilles, correction en un tap, Entrée. Cmd+K et bouton toujours visible.</td><td>K1, K2</td></tr>
+<tr><td>CAP-8</td><td>Événement <code>task_captured</code> (durée, pastilles corrigées, éléments trouvés).</td><td>Section 11</td></tr>
+</tbody>
+</table></div>
+
+<h3>PLN — Planificateur (package pur)</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>PLN-1</td><td>Contrat : types d'entrée et de sortie, numéro de version, <code>now</code> passé en entrée.</td><td>Figure 3</td></tr>
+<tr><td>PLN-2</td><td>Calcul des créneaux libres : temps libre − séances − blocs épinglés − fenêtre de stabilité.</td><td>S1, S5, S6</td></tr>
+<tr><td>PLN-3</td><td>Placement : ordre, taille des blocs, maximum par jour, premier créneau valide, limite par tâche et par jour, marge, date de début.</td><td>S2–S4, S12–S15</td></tr>
+<tr><td>PLN-4</td><td>Stabilité : garder un bloc existant s'il est encore valide.</td><td>S7</td></tr>
+<tr><td>PLN-5</td><td>Rapport de risque par échéance (temps manquant).</td><td>S9</td></tr>
+<tr><td>PLN-6</td><td>Raisons : <code>reasonCode</code> + paramètres pour chaque bloc.</td><td>S10</td></tr>
+<tr><td>PLN-7</td><td>Tests de propriétés : pas de chevauchement, dans le temps libre, avant l'échéance, épinglés inchangés, même entrée = même sortie.</td><td>Section 10</td></tr>
+<tr><td>PLN-8</td><td>Jeu de données de référence (une semaine type de Licence) et tests d'instantané.</td><td>Section 10</td></tr>
+</tbody>
+</table></div>
+
+<h3>RUN — Exécution du planning</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>RUN-1</td><td>Service de replanification : charger les entrées, appeler le planificateur, appliquer la différence dans une transaction, écrire <code>PlanRun</code>.</td><td>S7, 10.5</td></tr>
+<tr><td>RUN-2</td><td>Brancher les déclencheurs sur <code>ChangeNotifier</code>. Un seul calcul à la fois par espace (verrou). Échec : journal, pas d'erreur pour l'utilisateur.</td><td>S8, 10.5</td></tr>
+<tr><td>RUN-3</td><td>Rattrapage à l'ouverture de l'app : blocs <code>planned</code> passés → <code>missed</code>, puis replanification (au plus une fois par heure).</td><td>B3, S8</td></tr>
+<tr><td>RUN-4</td><td>Actions sur un bloc (API) : fait, passer, déplacer (épingle), désépingler. Règles d'état.</td><td>B1, B2, B4, B5, P3–P6</td></tr>
+<tr><td>RUN-5</td><td><code>replanCount</code> et alerte à la limite.</td><td>S11, P9</td></tr>
+<tr><td>RUN-6</td><td>« Accepter le risque » avec <code>OverloadAck</code>.</td><td>S9</td></tr>
+</tbody>
+</table></div>
+
+<h3>TOD — Vue Aujourd'hui</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>TOD-1</td><td>API de la journée : séances, blocs, échéances, alertes.</td><td>P1</td></tr>
+<tr><td>TOD-2</td><td>Chronologie du jour avec les raisons des blocs.</td><td>P1, P2</td></tr>
+<tr><td>TOD-3</td><td>Actions : démarrer, fait (+ temps passé en un tap), passer, déplacer (choix d'un créneau).</td><td>P3–P5</td></tr>
+<tr><td>TOD-4</td><td>Alerte de surcharge avec ses 4 actions.</td><td>P8, S9</td></tr>
+<tr><td>TOD-5</td><td>Message neutre pour les blocs manqués.</td><td>B3</td></tr>
+<tr><td>TOD-6</td><td>Accès à la note de séance depuis une séance.</td><td>N1</td></tr>
+</tbody>
+</table></div>
+
+<h3>WK — Vue Semaine</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>WK-1</td><td>Calendrier de la semaine : séances, blocs, échéances, examens, alertes.</td><td>T5</td></tr>
+<tr><td>WK-2</td><td>Filtre par cours.</td><td>T5</td></tr>
+<tr><td>WK-3</td><td>Glisser un bloc (épingle), désépingler. Un bloc passé ne bouge pas.</td><td>P5, P6, B5</td></tr>
+<tr><td>WK-4</td><td>Résumé de la semaine : travail prévu, fait, temps libre restant.</td><td>P9 (parcours)</td></tr>
+</tbody>
+</table></div>
+
+<h3>NOTE — Notes</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>NOTE-1</td><td>Table <code>Note</code> (3 types), API, contrôle de version optimiste.</td><td>N1, N2, N-R5</td></tr>
+<tr><td>NOTE-2</td><td>Éditeur TipTap, sauvegarde automatique après 1 à 2 s, brouillon local (IndexedDB).</td><td>N6, N-R5</td></tr>
+<tr><td>NOTE-3</td><td>Conflit de version : l'API répond 409, l'app affiche le message et propose de recharger.</td><td>N-R5</td></tr>
+<tr><td>NOTE-4</td><td>Texte brut créé par le serveur, <code>contentSchemaVersion</code>.</td><td>N-R1</td></tr>
+<tr><td>NOTE-5</td><td>Nœud de tâche : syntaxe <code>[]</code>, crée la tâche avec le cours de la note, affiche titre et statut.</td><td>N3, N-R2</td></tr>
+<tr><td>NOTE-6</td><td>Recalcul des <code>Link</code> à la sauvegarde ; ligne supprimée ; tâche supprimée ailleurs.</td><td>N-R3, N-R4, M5</td></tr>
+<tr><td>NOTE-7</td><td>Panneau latéral : séance, tâches ouvertes et prochain examen du cours.</td><td>N4</td></tr>
+<tr><td>NOTE-8</td><td>Événement <code>note_opened</code> et <code>lastOpenedAt</code>.</td><td>Section 11</td></tr>
+</tbody>
+</table></div>
+
+<h3>SRCH — Recherche</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>SRCH-1</td><td><code>tsvector</code> (<code>french</code> + <code>unaccent</code>) sur les notes et les tâches, index GIN.</td><td>X1</td></tr>
+<tr><td>SRCH-2</td><td><code>pg_trgm</code> pour les cours.</td><td>X1, C4</td></tr>
+<tr><td>SRCH-3</td><td>API de recherche unifiée (notes, tâches, cours), moins d'une seconde.</td><td>X1</td></tr>
+<tr><td>SRCH-4</td><td>Résultats dans la fenêtre de saisie, événement <code>search_used</code>.</td><td>K2, section 11</td></tr>
+</tbody>
+</table></div>
+
+<h3>OPS — Mesure et administration</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>ID</th><th>Tâche</th><th>Réf.</th></tr></thead>
+<tbody>
+<tr><td>OPS-1</td><td>Endpoint <code>ActivityEvent</code> et helper côté client.</td><td>Section 11</td></tr>
+<tr><td>OPS-2</td><td>Requêtes SQL des critères de succès (une commande donne le tableau).</td><td>Section 12</td></tr>
+<tr><td>OPS-3</td><td>Scripts d'administration : restaurer par <code>deletionId</code>, exporter un espace en JSON, supprimer un compte.</td><td>D3, X3</td></tr>
+<tr><td>OPS-4</td><td>Lire et filtrer les journaux JSON de l'API.</td><td>10.2</td></tr>
+<tr><td>OPS-5</td><td>Test d'intégration : liens <code>Link</code> orphelins.</td><td>M5</td></tr>
+</tbody>
+</table></div>
+
+<h2>14. Risques</h2>
+<div class="table-wrap"><table>
+<thead><tr><th>Risque</th><th>Réponse</th></tr></thead>
+<tbody>
+<tr><td>La saisie manuelle de l'emploi du temps est trop lente. Les testeurs abandonnent le premier jour.</td><td>Récurrence hebdomadaire. Étape optionnelle. Mesurer la durée de l'onboarding. Si nécessaire, faire l'import ICS plus tôt (M10 le permet).</td></tr>
+<tr><td>Le planning n'est pas réaliste.</td><td>Blocs épinglés, passer et replanifier, temps passé, « besoin de plus de temps », marge avant l'échéance (S14).</td></tr>
+<tr><td>Le planning change trop souvent. Les testeurs ne lui font pas confiance.</td><td>Fenêtre de stabilité, raisons, <code>PlanRun</code> et <code>moveCount</code> pour mesurer les déplacements.</td></tr>
+<tr><td>La replanification cache la surcharge.</td><td>Contrôle de surcharge pour chaque échéance, compteur de replanifications.</td></tr>
+<tr><td>Les notes et le planning restent séparés.</td><td>Lignes de tâche dans les notes, contexte du cours dans les notes. Mesurer les tâches créées depuis une note.</td></tr>
+<tr><td>Le papier reste plus rapide pour les notes.</td><td>Saisie rapide, brouillon local. Mesurer les notes par séance.</td></tr>
+<tr><td>Bugs de fuseau horaire et de récurrence.</td><td>Heure locale pour les règles, UTC pour les instants, tests avec le changement d'heure (FND-6).</td></tr>
+<tr><td>Seulement 2 testeurs : les retours ne sont pas objectifs.</td><td>Utiliser les métriques. Ajouter des camarades quand les testeurs les invitent.</td></tr>
+<tr><td>Le planificateur prend trop de temps à construire.</td><td>Package pur sans dépendance (PLN) : il peut commencer en même temps que les fondations. La vue Aujourd'hui peut d'abord afficher les échéances sans blocs.</td></tr>
+<tr><td>Le lien générique <code>Link</code> perd des références.</td><td>Vérification à l'écriture, test des liens orphelins (OPS-5).</td></tr>
+<tr><td>Les fondateurs ne sont pas d'accord, et le travail s'arrête.</td><td>Chaque fondateur est responsable d'un domaine et y prend les décisions.</td></tr>
+</tbody>
+</table></div>
+
+<h2>15. Décisions et questions ouvertes</h2>
+<h3>Décidé dans cette version</h3>
+<ul class="checklist">
+<li><input type="checkbox" checked disabled> Architecture : monolithe modulaire, un service API, un service web (section 10).</li>
+<li><input type="checkbox" checked disabled> Pas de worker, pas de notification, pas de mobile.</li>
+<li><input type="checkbox" checked disabled> Pas de clé étrangère entre modules ; un client Prisma et des migrations par module.</li>
+<li><input type="checkbox" checked disabled> Authentification : Better Auth, email + mot de passe.</li>
+<li><input type="checkbox" checked disabled> Pas de PostHog ni de bandeau de consentement : mesures en base de données.</li>
+<li><input type="checkbox" checked disabled> Corbeille, export et suppression du compte : à la main, sur demande.</li>
+<li><input type="checkbox" checked disabled> Modèles de notes : hors du MVP.</li>
+<li><input type="checkbox" checked disabled> Placement des blocs : premier créneau valide, étalé par la limite par tâche et par jour (S12, S13).</li>
+</ul>
+<h3>Avant de commencer</h3>
+<ul class="checklist">
+<li><input type="checkbox" disabled> Choisir le domaine de chaque fondateur (propriétaire de chaque épopée).</li>
+<li><input type="checkbox" disabled> Choisir un nom de produit temporaire.</li>
+<li><input type="checkbox" disabled> Fixer le temps libre par défaut (A4, S4).</li>
+<li><input type="checkbox" disabled> Décider si les notes / moyennes entrent dans le MVP (table <code>Grade</code> prête, section 9.3).</li>
+</ul>
+<h3>Avant l'épopée concernée</h3>
+<ul class="checklist">
+<li><input type="checkbox" disabled> TSK, EXM, CAP : estimations par défaut (K-R5), règles de révision (E1), cible de saisie 5 ou 10 s, comportement sans date (C5).</li>
+<li><input type="checkbox" disabled> PLN, RUN : durée des blocs (S3), fenêtre de stabilité (S6), limite de replanification (S11), heure de clôture (S8), message des blocs manqués (B3), limite par tâche et par jour (S13), marge (S14).</li>
+<li><input type="checkbox" disabled> NOTE : confirmer la syntaxe <code>[]</code>, comportement à la suppression d'une ligne (N-R3).</li>
+<li><input type="checkbox" disabled> FND : hébergement (UE).</li>
+</ul>
+</body>
+</html>
