@@ -3,7 +3,7 @@ import * as stylex from "@stylexjs/stylex";
 import type { ReactNode } from "react";
 import { color, font, motion, radius, space } from "../tokens.stylex.ts";
 
-/** Props shared by every labelled form control (Input, TextArea, Select, Checkbox). */
+/** Props shared by the labelled text and choice fields (Input, TextArea, Select). */
 export type FieldProps = {
   /** Visible label, also the accessible name of the control. */
   label: string;
