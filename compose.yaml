@@ -1,0 +1,26 @@
+# Local Postgres. One container for every worktree (fixed project name); worktrees isolate by database name.
+name: kata
+
+services:
+  postgres:
+    image: postgres:18.6-alpine
+    container_name: kata-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kata
+      POSTGRES_PASSWORD: kata
+      # Created on the first start. Other databases (tests, worktrees) are created by the db scripts.
+      POSTGRES_DB: ${POSTGRES_DB:-kata}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Postgres 18 images keep data under /var/lib/postgresql/18/docker; mount the parent.
+      - kata-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kata -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  kata-pgdata:
