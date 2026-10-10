@@ -16,6 +16,7 @@
     "react-dom": "19.3.0"
   },
   "dependencies": {
+    "@base-ui/react": "1.8.0",
     "@stylexjs/stylex": "0.19.1"
   },
   "devDependencies": {
@@ -25,6 +26,7 @@
     "@stylexjs/babel-plugin": "0.19.1",
     "@stylexjs/unplugin": "0.19.1",
     "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.7",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "react": "19.3.0",
