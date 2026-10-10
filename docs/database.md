@@ -83,3 +83,16 @@ Template for a new row: table (`schema.table`), the personal data columns, why w
 | Table | Content |
 |---|---|
 | `health.system_check` | Health check results: id, status, time. |
+
+### Logs
+
+The API writes JSON lines to stdout (`apps/api/src/logger.ts`): `time`, `level`, `msg`, then fields. Logs are not stored by the app; retention is the job of whatever collects stdout.
+
+| Line (`msg`) | Fields |
+|---|---|
+| `request` (one per request) | `method`, `path` (no query string), `status`, `durationMs`, `requestId` (random UUID, also sent as `x-request-id`) |
+| `unhandled error` | `requestId`, `error` (error class name), `stack` |
+| `invalid environment` | `variables`: name and problem of each bad variable, never its value |
+| `api started` / `api stopping` / `api stopped` | `port`, `signal` |
+
+**No personal data in logs.** Never log request or response bodies, query strings, headers (cookies, authorization), IP addresses, user agents, user ids, emails or names. Error messages that go into logs must not contain user data either. A new field that could identify a person needs a row in the register above first.
