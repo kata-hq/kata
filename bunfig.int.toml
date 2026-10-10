@@ -1,0 +1,4 @@
+# Integration tests: `bun run test:int`. Creates and migrates the `_test` database before any test file loads.
+[test]
+preload = ["./scripts/ensure-test-db.ts"]
+pathIgnorePatterns = ["**/node_modules/**"]

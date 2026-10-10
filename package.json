@@ -8,10 +8,19 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "bun run db:generate",
     "lint": "biome check .",
-    "format": "biome format --write .",
-    "typecheck": "bun run --filter '*' typecheck",
-    "test": "bun test"
+    "format": "biome check --write .",
+    "typecheck": "bun run --filter '*' typecheck && tsc --noEmit -p scripts",
+    "test": "bun test",
+    "test:unit": "bun test",
+    "test:int": "bun --config=bunfig.int.toml test .int.test.ts",
+    "db:up": "docker compose up -d --wait postgres",
+    "db:migrate": "bun scripts/db-migrate-all.ts",
+    "db:reset": "bun scripts/db-reset.ts",
+    "db:seed": "bun scripts/db-seed.ts",
+    "db:studio": "bun scripts/db-studio.ts",
+    "db:generate": "bun scripts/db-generate.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",

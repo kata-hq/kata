@@ -1,0 +1,23 @@
+// Health module. Postgres schema `health`. Its migration history (`_prisma_migrations`) lives in the same schema.
+generator client {
+  provider               = "prisma-client"
+  output                 = "./generated"
+  moduleFormat           = "esm"
+  importFileExtension    = "ts"
+  generatedFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["health"]
+}
+
+/// One database round trip made by the health check. No personal data.
+model SystemCheck {
+  id        String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  status    String
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+
+  @@map("system_check")
+  @@schema("health")
+}
