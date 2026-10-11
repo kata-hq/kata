@@ -1,6 +1,12 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
 import { resetTestDatabase } from "./database-admin.ts";
-import { assertTestDatabase, databaseName, isTestDatabase, withSchema } from "./database-url.ts";
+import {
+  assertTestDatabase,
+  databaseName,
+  isTestDatabase,
+  prismaConfigUrl,
+  withSchema,
+} from "./database-url.ts";
 
 describe("database URL helpers", () => {
   test("withSchema sets the schema parameter and keeps the others", () => {
@@ -30,5 +36,23 @@ describe("resetTestDatabase", () => {
     await expect(resetTestDatabase("postgres://kata:kata@localhost:1/kata", ["health"])).rejects.toThrow(
       'Refusing to use database "kata"',
     );
+  });
+});
+
+describe("prismaConfigUrl", () => {
+  const saved = process.env["DATABASE_URL"];
+  afterEach(() => {
+    if (saved === undefined) delete process.env["DATABASE_URL"];
+    else process.env["DATABASE_URL"] = saved;
+  });
+
+  test("adds the module schema to DATABASE_URL", () => {
+    process.env["DATABASE_URL"] = "postgres://kata:kata@localhost:5432/kata";
+    expect(prismaConfigUrl("health")).toBe("postgres://kata:kata@localhost:5432/kata?schema=health");
+  });
+
+  test("falls back to a placeholder when DATABASE_URL is missing (prisma generate does not connect)", () => {
+    delete process.env["DATABASE_URL"];
+    expect(prismaConfigUrl("health")).toBe("postgres://unset@localhost:1/unset?schema=health");
   });
 });
