@@ -1,0 +1,18 @@
+// The web app needs the API's types (Hono RPC `AppType`), never its code: a value import would bundle the
+// server (Prisma, pg) into the browser. `import { type X }` still leaves a runtime import, so only
+// `import type` / `export type` statements pass.
+language js
+
+or {
+  or {
+    JsImport(import_clause=$clause) as $statement,
+    JsExport(export_clause=$clause) as $statement
+  } where {
+    $clause <: contains JsModuleSource() as $src,
+    $src <: r"[\"']@kata/api(?:/.*)?[\"']",
+    not $clause <: r"(?s)type\s.*"
+  },
+  JsImportCallExpression() as $statement where { $statement <: contains r"[\"']@kata/api(?:/.*)?[\"']" }
+} where {
+  register_diagnostic(span=$statement, message="Value import of @kata/api in the web app. Import only its types (import type { AppType } from '@kata/api') and call the API through the Hono RPC client in app/api-client.ts.")
+}

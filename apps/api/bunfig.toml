@@ -1,3 +1,14 @@
 # `bun test` here runs unit tests only. Integration tests (*.int.test.ts) run from the root with `bun run test:int`.
 [test]
 pathIgnorePatterns = ["**/*.int.test.ts", "**/node_modules/**"]
+# `bun run test:coverage` fails when a file is below 90% lines. Excluded: the generated Prisma client, the entry file
+# (server.ts) and the database tooling used only by scripts and test setup (database-admin.ts, test-database.ts).
+# The gate is on lines only: `functions = 0` because Bun otherwise applies the threshold to functions too.
+coverageThreshold = { lines = 0.9, functions = 0 }
+coveragePathIgnorePatterns = [
+  "**/generated/**",
+  "src/server.ts",
+  "src/shared/persistence/database-admin.ts",
+  "src/shared/persistence/test-database.ts",
+  "../../packages/**",
+]

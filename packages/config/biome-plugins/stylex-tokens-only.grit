@@ -1,0 +1,37 @@
+// Outside the design system, stylex.create takes token values only. Raw colors, sizes and fonts drift from
+// the themes. Flags string literals with a hex / rgb() / hsl() / named color or a px / rem / em size,
+// numeric sizes, and any literal fontFamily / fontWeight.
+language js
+
+`stylex.create($styles)` where {
+  $styles <: contains bubble JsPropertyObjectMember(name=$key, value=$value) as $member where {
+    or {
+      and {
+        $value <: or {
+          JsStringLiteralExpression(),
+          JsTemplateExpression()
+        },
+        $value <: or {
+          r"(?s).*#[0-9a-fA-F]{3,8}\b.*",
+          r"(?is).*\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(.*",
+          r"(?s).*\d(?:px|rem|em)\b.*",
+          r"(?i)[\"'`]\s*(?:black|white|red|green|blue|yellow|orange|purple|pink|gray|grey|silver|maroon|navy|teal|olive|lime|aqua|cyan|magenta|fuchsia|brown|gold|indigo|violet|crimson|coral|salmon|tomato|khaki|beige|ivory|lavender|turquoise|tan|plum|orchid|chocolate|darkgray|darkgrey|lightgray|lightgrey|whitesmoke|ghostwhite|aliceblue|slategray|slategrey|darkblue|darkred|darkgreen|lightblue|lightgreen|skyblue|steelblue|royalblue|midnightblue|firebrick|forestgreen|seagreen|hotpink|deeppink|rebeccapurple)\s*[\"'`]"
+        }
+      },
+      and {
+        $key <: r"[\"']?(?:fontFamily|fontWeight|font)[\"']?",
+        $value <: or {
+          JsStringLiteralExpression(),
+          JsTemplateExpression(),
+          JsNumberLiteralExpression()
+        }
+      },
+      and {
+        $value <: JsNumberLiteralExpression(),
+        not $value <: `0`,
+        $key <: r"[\"']?(?:width|height|minWidth|minHeight|maxWidth|maxHeight|inlineSize|blockSize|minInlineSize|minBlockSize|maxInlineSize|maxBlockSize|margin\w*|padding\w*|gap|rowGap|columnGap|top|right|bottom|left|inset\w*|fontSize|letterSpacing|borderRadius|border\w*Radius|borderWidth|border\w*Width|outlineWidth|outlineOffset)[\"']?"
+      }
+    },
+    register_diagnostic(span=$member, message="Raw value in stylex.create. Use tokens: color.*, space.*, radius.*, font.*, shadow.* from @kata/design-system/tokens.stylex (or a design-system component variant).")
+  }
+}

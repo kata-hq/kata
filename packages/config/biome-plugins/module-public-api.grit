@@ -1,0 +1,27 @@
+// Backend modules (apps/api/src/modules/<m>/) talk to each other only through modules/<m>/index.ts.
+// Covers relative paths that climb out of the importing module (`../../<other>/...`) and any path that
+// names `modules/<other>/...`. Prisma folders and clients have their own rule (module-prisma-isolation.grit).
+language js
+
+JsModuleSource() as $src where {
+  $filename <: r"(?:.*/)?apps/api/src/(.*)"($inApi),
+  or {
+    // From inside a module: count the `../` against the file's depth inside its module.
+    and {
+      $inApi <: r"modules/([^/]+)/(.*)"($own, $rest),
+      $src <: r"[\"']((?:\.\./)+)([^./][^/]*)/(.*)[\"']"($ups, $other, $tail),
+      $depth = length(split(`$rest/`, "/")),
+      $climbs = length(split($ups, "/")),
+      $climbs <: $depth,
+      not $other <: $own
+    },
+    // Any path that names modules/<other>/ (from a module or from app-level code such as app.ts).
+    and {
+      $src <: r"[\"'](?:.*/)?modules/([^/]+)/(.*)[\"']"($other, $tail),
+      or { and { $inApi <: r"modules/([^/]+)/.*"($own), not $other <: $own }, not $inApi <: r"modules/.*" }
+    }
+  },
+  not $tail <: r"index(?:\.ts)?",
+  not $tail <: r"(?:prisma|infrastructure/[^/]*prisma[^/]*)(?:/.*)?",
+  register_diagnostic(span=$src, message=`Import $other only through modules/$other/index.ts and inject its service via the module composition root (module.ts / app.ts).`)
+}

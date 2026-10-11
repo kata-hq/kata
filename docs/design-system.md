@@ -11,6 +11,8 @@ Apps style only through design-system components.
 - Apps may call `stylex.create` only with token values (`@kata/design-system/tokens.stylex`). No raw colors, sizes or shadows.
 - Components expose typed variant props (`size`, `tone`, `gap`, ...). They never accept `style` or `className`. If a component cannot do what you need, add a variant to the design system; do not work around it in the app.
 
+Biome plugins and architecture tests enforce these rules outside `packages/design-system`; see [architecture.md](architecture.md#guardrails).
+
 ## Tokens
 
 Defined with `stylex.defineVars` in `src/tokens.stylex.ts`. Import them from `@kata/design-system/tokens.stylex`: StyleX only recognizes vars when the import path ends in `.stylex`, so `src/index.ts` does not re-export them.

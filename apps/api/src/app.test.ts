@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { err, ok } from "@kata/shared";
 import { hc } from "hono/client";
-import { type AppType, buildApp } from "./app.ts";
+import { type AppType, buildApp, createApp } from "./app.ts";
 import { createLogger } from "./logger.ts";
 import { createHealthRoutes, type HealthService } from "./modules/health/index.ts";
 
@@ -101,6 +101,24 @@ describe("errors", () => {
     });
     expect(String(errorLine?.["stack"])).toContain("internal detail");
     expect(requestLine).toMatchObject({ msg: "request", route: "/api/health", status: 500, requestId });
+  });
+});
+
+describe("createApp", () => {
+  test("wires the health module to its database client and closes it", async () => {
+    // Nothing listens on port 1: the real module answers "db down" without a database.
+    const env = {
+      DATABASE_URL: "postgres://kata:kata@127.0.0.1:1/kata",
+      API_PORT: 3000,
+      LOG_LEVEL: "error",
+    } as const;
+    const running = createApp(env, createLogger({ write: () => {} }));
+
+    const res = await running.app.request("/api/health");
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({ api: "ok", db: "down" });
+    await running.close();
   });
 });
 
