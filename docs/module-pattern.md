@@ -33,7 +33,7 @@ apps/api/src/
 | `module.ts` | `createHealthModule({ prisma, logger })` → `{ service, routes }`. The only file of the module that calls `new` on its classes. | Everything in the module. |
 | `index.ts` | The public API: `createHealthModule`, `createHealthPrismaClient`, `createHealthRoutes` (for app tests with a fake service), and the types `HealthService`, `HealthStatus`, `DbStatus`, `HealthRoutes`, `HealthModule`, `HealthModuleDeps`, `HealthPrismaClient`. | The module's own files. |
 
-Code outside a module imports **only** `modules/<module>/index.ts`. Tests inside the module may import its internal files.
+Code outside a module imports **only** `modules/<module>/index.ts`. Tests inside the module may import its internal files. Biome enforces this and the allowed dependency directions between modules; see [architecture.md](architecture.md).
 
 ## Composition roots
 
