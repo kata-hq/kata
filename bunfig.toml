@@ -1,3 +1,3 @@
-# `bun test` runs unit tests only. Integration tests (*.int.test.ts) run with `bun run test:int`.
+# `bun test` runs unit tests only. Integration tests (*.int.test.ts) run with `bun run test:int`, Playwright (apps/e2e) with `bun run e2e`.
 [test]
-pathIgnorePatterns = ["**/*.int.test.ts", "**/node_modules/**"]
+pathIgnorePatterns = ["**/*.int.test.ts", "**/node_modules/**", "apps/e2e/**"]

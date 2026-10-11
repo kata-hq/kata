@@ -1,0 +1,14 @@
+{
+  "name": "@kata/e2e",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "bun run.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@kata/config": "workspace:*",
+    "@playwright/test": "1.64.0"
+  }
+}

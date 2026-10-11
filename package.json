@@ -17,7 +17,7 @@
     "test": "bun run --filter '*' test",
     "test:unit": "bun run --filter '*' test",
     "test:coverage": "bun run --filter '*' test:coverage",
-    "e2e": "bun run --filter @kata/e2e e2e",
+    "e2e": "bun apps/e2e/run.ts",
     "test:int": "bun --config=bunfig.int.toml test .int.test.ts",
     "test:arch": "bun test tests/architecture",
     "check": "bun scripts/check.ts",
