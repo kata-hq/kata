@@ -58,7 +58,7 @@ DATABASE_URL=postgres://kata:kata@localhost:5432/kata bun x prisma migrate diff 
 
 ### Worktrees
 
-All worktrees share the `kata-postgres` container (compose project `kata`) and isolate by database name: give each worktree its own `DATABASE_URL` / `TEST_DATABASE_URL` database name. `db:migrate` creates the database when it is missing. If port 5432 is taken, set `POSTGRES_PORT` and use the same port in the URLs.
+All worktrees share the `kata-postgres` container (compose project `kata`) and isolate by database name: give each worktree its own `DATABASE_URL` / `TEST_DATABASE_URL` database name. `db:migrate` creates the database when it is missing. If port 5432 is taken, set `POSTGRES_PORT` and use the same port in the URLs. `bun run dev:isolated` does this for you (database `kata_<worktree>`, own ports): see [workflow.md](workflow.md#worktrees-and-isolated-instances).
 
 ## Tests
 

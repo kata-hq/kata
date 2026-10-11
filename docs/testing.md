@@ -52,4 +52,16 @@ To add a guardrail: write the rule (a `.grit` file registered in `biome.json`, o
 
 ## End-to-end tests
 
-Playwright, in `apps/e2e` (`bun run e2e`). Set up by FND-23.
+Playwright 1.64, Chromium only, in `apps/e2e` (`@kata/e2e`). Specs: `apps/e2e/tests/*.spec.ts`.
+
+```sh
+bun run e2e:install   # once per machine (and in CI): download Chromium for Playwright
+bun run e2e           # extra arguments go to `playwright test`, e.g. bun run e2e --headed
+```
+
+- Nothing needs to be running except Docker. `bun run e2e` (`apps/e2e/run.ts`) picks free ports for the instance `e2e-<worktree>`, then runs Playwright. Its `webServer` starts that instance with `dev:isolated --reset`: database `kata_e2e_<worktree>` dropped, migrated and seeded, then the API and the web dev server. Playwright stops it at the end. See [workflow.md](workflow.md#worktrees-and-isolated-instances).
+- Run Playwright through `bun run e2e`, not `playwright test` directly: the config reads the ports that `run.ts` chose.
+- The smoke test (`tests/smoke.spec.ts`) opens `/` and expects "API ok", "Database ok" and the last system check time, read from the database.
+- The first page load can take a few seconds (Vite optimizes dependencies), so the first assertion waits up to 60 s.
+- `apps/e2e` has no `test` / `test:coverage` script and the root `bunfig.toml` ignores `apps/e2e/**`, so `bun test`, `bun run test` and the coverage gate never run Playwright specs. `bun run check` does not run e2e; run it before a PR that changes the app.
+- Failures keep a trace in `apps/e2e/test-results/` (`bun x playwright show-trace <file>` from `apps/e2e`).

@@ -3,12 +3,27 @@ import { assertTestDatabase, databaseName } from "./database-url.ts";
 
 /** Tooling only (scripts and tests): creates, drops and resets whole databases. */
 
-export async function ensureDatabase(databaseUrl: string): Promise<void> {
+/** Creates the database when it is missing. Returns `true` when it was created. */
+export async function ensureDatabase(databaseUrl: string): Promise<boolean> {
   const name = databaseName(databaseUrl);
+  let created = false;
   await withMaintenanceClient(databaseUrl, async (client) => {
     const found = await client.query("SELECT 1 FROM pg_database WHERE datname = $1", [name]);
-    if (found.rowCount === 0) await client.query(`CREATE DATABASE ${quoteIdentifier(name)}`);
+    if (found.rowCount !== 0) return;
+    await client.query(`CREATE DATABASE ${quoteIdentifier(name)}`);
+    created = true;
   });
+  return created;
+}
+
+/** `true` when the Postgres server of the URL accepts connections. */
+export async function isServerReachable(databaseUrl: string): Promise<boolean> {
+  try {
+    await withMaintenanceClient(databaseUrl, async () => {});
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function dropDatabase(databaseUrl: string): Promise<void> {
