@@ -1,0 +1,3 @@
+[test]
+# `bun run test:coverage` fails below 90% lines.
+coverageThreshold = { lines = 0.9 }

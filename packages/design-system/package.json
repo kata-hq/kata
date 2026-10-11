@@ -9,6 +9,7 @@
   },
   "scripts": {
     "test": "bun test",
+    "test:coverage": "bun test --coverage",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json"
   },
   "peerDependencies": {

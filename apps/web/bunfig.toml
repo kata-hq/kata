@@ -1,2 +1,6 @@
 [test]
 preload = ["./test/happy-dom.ts", "./test/setup.ts"]
+# `bun run test:coverage` fails below 90% lines. Excluded: test setup, the entry file (entry.server.tsx),
+# and other workspaces (each measures its own coverage).
+coverageThreshold = { lines = 0.9 }
+coveragePathIgnorePatterns = ["test/**", "app/entry.server.tsx", "../../packages/**", "../api/**"]
