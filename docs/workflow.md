@@ -45,3 +45,28 @@ bun run docker:down    # remove those three containers (Postgres keeps running)
 ## Issues, branches and PRs
 
 Follow the `agile-workflow` skill (`.claude/skills/agile-workflow/SKILL.md`): one issue per PR, branch `<type>/<issue title>`, one-line commits `type(scope): description`, `bun run check` (and `bun run e2e` when the change is visible in the app) before the PR, and the user does the squash merge.
+
+## Agent workflow
+
+Claude Code reads `CLAUDE.md` (the map and the hard rules) and the project settings in `.claude/settings.json`.
+
+**Skills** (`.claude/skills/`):
+
+| Skill | Use it to |
+|---|---|
+| `agile-workflow` | follow the process: issues, branches, commits, validation, PRs, reviews |
+| `gh-epics`, `gh-project` | manage epics and sub-issues, set Status / Priority / Points on the `kata-dev` project |
+| `plan-issue` | turn an idea into a ready issue |
+| `build-issue` | implement an issue end to end, up to an open PR |
+| `review-pr` | review a PR against the rules in `docs/` |
+
+`plan-issue`, `build-issue` and `review-pr` also run without a human (GitHub Action): they never ask questions; when blocked, they comment on the issue and add the label `needs-human`.
+
+**Hooks** (`scripts/hooks/`, Bun):
+
+- After each `Edit` or `Write` (`post-edit.ts`): Biome on the changed file and the `typecheck` of its workspace package (or `tsc -p scripts` / `tests/architecture`). Errors are fed back to Claude (exit 2). Non-code files, generated code and files outside the repo are skipped.
+- Before Claude stops (`stop-check.ts`): `bun run check`. If it fails, the stop is blocked and Claude gets the summary. It runs once per stop (it respects `stop_hook_active`) and is skipped when the worktree is clean and has no commit ahead of `origin/main`.
+
+**Permissions**: the allow-list in `.claude/settings.json` covers the usual commands (`bun install`, `bun run dev|check|test*|lint|format|typecheck|e2e|db:*|dev:isolated|docker:build`, read-only `git`, `gh` and `docker compose`). Anything else asks.
+
+**Worktrees**: each agent works in its own git worktree with its own instance (`bun run dev:isolated`, see above), so several agents can build and test at the same time.

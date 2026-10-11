@@ -21,6 +21,7 @@ const STEPS: readonly Step[] = [
     fix: "needs Postgres: bun run db:up; then fix the failing tests",
   },
   { name: "architecture tests", script: "test:arch", fix: "follow the fix in each failure message" },
+  { name: "script tests", script: "test:scripts", fix: "fix the failing tests in scripts/" },
 ];
 
 const results: { step: Step; ok: boolean; seconds: number }[] = [];

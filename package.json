@@ -21,6 +21,7 @@
     "e2e:install": "bun run --filter @kata/e2e install-browsers",
     "test:int": "bun --config=bunfig.int.toml test .int.test.ts",
     "test:arch": "bun test tests/architecture",
+    "test:scripts": "bun test scripts",
     "check": "bun scripts/check.ts",
     "db:up": "docker compose up -d --wait postgres",
     "db:migrate": "bun scripts/db-migrate-all.ts",
