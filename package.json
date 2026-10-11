@@ -27,7 +27,10 @@
     "db:reset": "bun scripts/db-reset.ts",
     "db:seed": "bun scripts/db-seed.ts",
     "db:studio": "bun scripts/db-studio.ts",
-    "db:generate": "bun scripts/db-generate.ts"
+    "db:generate": "bun scripts/db-generate.ts",
+    "docker:build": "docker build -f apps/api/Dockerfile -t kata-api . && docker build -f apps/web/Dockerfile -t kata-web .",
+    "docker:up": "docker compose --profile app up -d --wait",
+    "docker:down": "docker compose --profile app rm --stop --force migrate api web"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.15",
