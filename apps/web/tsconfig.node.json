@@ -1,0 +1,4 @@
+{
+  "extends": "@kata/config/tsconfig.base.json",
+  "include": ["vite.config.ts", "react-router.config.ts", "web-env.ts", "web-env.test.ts"]
+}

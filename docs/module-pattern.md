@@ -101,3 +101,40 @@ The allowed direction between modules is fixed (see `persistence-modules.ts`): a
 - `http/*.test.ts`: the route factory with a fake service, through `routes.request(...)`.
 - `src/app.test.ts`: `buildApp` with fake services: status codes, request log line, error format, `AppType` with `hc`.
 - `infrastructure/*.int.test.ts` and `module.int.test.ts`: real Postgres (`bun run test:int`).
+
+## Frontend module
+
+The web app (`apps/web`, `@kata/web`) is a React Router SPA (framework mode, `ssr: false`) built with Vite and the StyleX plugin. It mirrors the backend modules: one folder per module in `apps/web/app/modules/<module>/`.
+
+```
+apps/web/
+  vite.config.ts            StyleX plugin, React Router plugin, dev port, `/api` proxy
+  web-env.ts                Zod schema of the env the dev server reads (WEB_PORT, API_PORT, API_URL)
+  react-router.config.ts    `ssr: false`
+  app/
+    root.tsx                html shell, ThemeProvider, HydrateFallback, ErrorBoundary, StyleX CSS link
+    entry.server.tsx        renders the index.html shell (replaces the default entry, which needs `isbot`)
+    routes.ts               route config; dev-only routes are added only when `import.meta.env.DEV`
+    api-client.ts           `createApiClient(baseUrl, fetch?)` → `hc<AppType>`
+    routes/                 thin route files: `clientLoader` + default component, nothing else
+    modules/health/
+      api/                  calls the API through the client and maps responses to a view state (health-api.ts)
+      components/           design-system-only components (HealthView.tsx + .test.tsx)
+    modules/design-preview/ components of the dev-only `/dev/preview` page
+```
+
+| Folder / file | Contains | May import |
+|---|---|---|
+| `modules/<m>/api/` | Functions that take an `ApiClient` and return a plain state the UI renders (`fetchHealth(client)` → `HealthState`). Expected failures (API down, 503) are values, not throws. | `api-client.ts` (types), `hono/client` types. |
+| `modules/<m>/components/` | React components built only from `@kata/design-system`. They receive data as props; they may use React Router hooks (`useRevalidator`). | `@kata/design-system`, the module's `api/` (types), `react-router`. |
+| `modules/<m>/hooks/` | Only when a component needs a reusable hook. | |
+| `routes/<route>.tsx` | `clientLoader` (creates the client with `window.location.origin`, calls the module api) and a component that passes `loaderData` to the module component. | Module folders, `api-client.ts`. |
+
+Rules:
+
+- The web app imports the API with `import type { AppType } from "@kata/api"` only. It never imports API code.
+- Data loads in route `clientLoader`s. To refetch, call `useRevalidator().revalidate()`. No client cache library.
+- Styling follows the [design system rule](design-system.md#the-hard-rule).
+- Tests (`bun run --filter @kata/web test`): component tests render the module component behind `createRoutesStub` with a loader that uses a real `hc` client and a fake `fetch` (see `HealthView.test.tsx`). `apps/web/bunfig.toml` preloads happy-dom and the StyleX Bun plugin, like the design system.
+
+Run it with `bun run dev` at the root: it starts the API and the web dev server together. The web dev server listens on `WEB_PORT` (default 5173) and proxies `/api` to `API_URL` (default `http://localhost:${API_PORT}`). A bad value stops it with an error naming the variable. `bun run --filter @kata/web build` writes the static app to `apps/web/build/client`.

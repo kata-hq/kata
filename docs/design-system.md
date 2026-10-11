@@ -114,3 +114,13 @@ Spread `stylex.props(...)` on each Base UI part. Do not pass Base UI's `classNam
 `bun run --filter @kata/design-system test` (or `bun test` inside `packages/design-system`). The package `bunfig.toml` preloads happy-dom and a Bun plugin that compiles StyleX with `@stylexjs/unplugin` (uncompiled `stylex.create` throws). Bun only reads `bunfig.toml` from the current directory, so `bun test packages/design-system` from the repo root does not load it; use the package script.
 
 `tsconfig.json` checks the browser source without Bun types; `tsconfig.test.json` adds Bun types for the tests. `bun run typecheck` runs both.
+
+## Preview page
+
+Run `bun run dev` and open `http://localhost:${WEB_PORT}/dev/preview`. It shows every component with its variants and every token group (color swatches, space, radius, shadow, font, zIndex, motion) in the light and dark theme side by side. Hover a motion chip to see its duration or easing. Add new components and tokens to `apps/web/app/modules/design-preview/components/`.
+
+The page exists only in dev: `apps/web/app/routes.ts` adds the route only when `import.meta.env.DEV`, so the production build has no route and no code for it. Dialog and Select popups render in a portal outside the theme column, so they follow the system theme.
+
+## StyleX CSS in the web app
+
+The web app has no CSS file. In dev, the StyleX Vite plugin serves the CSS at `/virtual:stylex.css` and its runtime (`virtual:stylex:runtime`, imported by `app/root.tsx`) reloads it on change. In the build, the plugin writes `build/client/assets/stylex.css`, which `app/root.tsx` links.
