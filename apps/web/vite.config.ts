@@ -28,6 +28,9 @@ export default defineConfig(({ mode }) => {
     optimizeDeps: {
       entries: ["app/**/*.{ts,tsx}", "../../packages/design-system/src/**/*.{ts,tsx}", "!**/*.test.{ts,tsx}"],
     },
+    // The SPA build prerenders index.html through Vite's preview server. Bind it to IPv4 explicitly: in a Linux
+    // container `localhost` resolves to ::1 first and the prerender request (to 127.0.0.1) is refused.
+    preview: { host: "127.0.0.1" },
     server: {
       port: env.WEB_PORT,
       strictPort: true,

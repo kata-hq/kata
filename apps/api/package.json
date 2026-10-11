@@ -18,11 +18,11 @@
     "@prisma/client": "7.10.0",
     "hono": "4.13.13",
     "pg": "8.23.1",
+    "prisma": "7.10.0",
     "zod": "4.6.5"
   },
   "devDependencies": {
     "@kata/config": "workspace:*",
-    "@types/pg": "8.23.1",
-    "prisma": "7.10.0"
+    "@types/pg": "8.23.1"
   }
 }

@@ -22,5 +22,47 @@ services:
       timeout: 3s
       retries: 30
 
+  # Profile "app": the production images against this Postgres (`bun run docker:up`). Not started by `db:up`.
+  # The api and web images read config from env only. Override DOCKER_* in `.env` or the shell.
+  migrate:
+    profiles: ["app"]
+    image: kata-api
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    command: ["migrate"]
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgres://kata:kata@postgres:5432/kata}
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    profiles: ["app"]
+    image: kata-api
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    environment:
+      DATABASE_URL: ${DOCKER_DATABASE_URL:-postgres://kata:kata@postgres:5432/kata}
+      API_PORT: 3000
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${DOCKER_API_PORT:-3080}:3000"
+    healthcheck:
+      test: ["CMD", "bun", "-e", "await fetch('http://localhost:3000/api/health')"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    profiles: ["app"]
+    image: kata-web
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    environment:
+      API_URL: http://api:3000
+      WEB_PORT: 8080
+    ports:
+      - "${DOCKER_WEB_PORT:-8080}:8080"
+    depends_on:
+      api: { condition: service_healthy }
+
 volumes:
   kata-pgdata:

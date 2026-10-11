@@ -1,0 +1,16 @@
+# Keep the build context small and free of secrets. Images install their own dependencies.
+**/node_modules
+.env
+.env.*
+**/.env
+**/.env.*
+.git
+.claude
+**/build
+**/dist
+**/coverage
+**/generated
+**/.react-router
+**/test-results
+**/playwright-report
+*.log
