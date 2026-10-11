@@ -9,6 +9,145 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!docs/product/*.html", "!!**/generated", "!!**/coverage", "!!**/dist"]
-  }
+    "includes": [
+      "**",
+      "!docs/product/*.html",
+      "!tests/architecture/fixtures",
+      "!!**/generated",
+      "!!**/coverage",
+      "!!**/dist"
+    ]
+  },
+  "plugins": [
+    {
+      "path": "./packages/config/biome-plugins/no-inline-style.grit",
+      "includes": ["**", "!**/packages/design-system/**"]
+    },
+    {
+      "path": "./packages/config/biome-plugins/no-string-classname.grit",
+      "includes": ["**", "!**/packages/design-system/**"]
+    },
+    {
+      "path": "./packages/config/biome-plugins/stylex-tokens-only.grit",
+      "includes": ["**", "!**/packages/design-system/**"]
+    },
+    {
+      "path": "./packages/config/biome-plugins/module-public-api.grit",
+      "includes": ["**/apps/api/src/**"]
+    },
+    {
+      "path": "./packages/config/biome-plugins/module-prisma-isolation.grit",
+      "includes": ["**/apps/api/src/modules/**"]
+    },
+    {
+      "path": "./packages/config/biome-plugins/no-prisma-in-core.grit",
+      "includes": ["**/apps/api/src/modules/*/domain/**", "**/apps/api/src/modules/*/application/**"]
+    }
+  ],
+  "linter": {
+    "rules": {
+      "style": {
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "patterns": [
+              {
+                "group": [
+                  "tailwindcss",
+                  "tailwindcss/**",
+                  "@tailwindcss/**",
+                  "styled-components",
+                  "styled-components/**",
+                  "styled-jsx",
+                  "styled-jsx/**",
+                  "@emotion/**",
+                  "@vanilla-extract/**",
+                  "@linaria/**",
+                  "@pandacss/**",
+                  "@stitches/**",
+                  "@mui/**",
+                  "@chakra-ui/**",
+                  "goober",
+                  "jss",
+                  "react-jss",
+                  "aphrodite",
+                  "radium",
+                  "sass",
+                  "node-sass",
+                  "sass-embedded",
+                  "less",
+                  "postcss",
+                  "clsx",
+                  "classnames"
+                ],
+                "message": "Styling libraries are not allowed. Use components from @kata/design-system; for custom layout use stylex.create with tokens from @kata/design-system/tokens.stylex."
+              },
+              {
+                "group": [
+                  "**/*.css",
+                  "**/*.scss",
+                  "**/*.sass",
+                  "**/*.less",
+                  "*.css",
+                  "*.scss",
+                  "*.sass",
+                  "*.less"
+                ],
+                "message": "CSS files are not allowed outside @kata/design-system. Use components from @kata/design-system; for custom layout use stylex.create with tokens from @kata/design-system/tokens.stylex."
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/packages/design-system/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "tailwindcss",
+                      "tailwindcss/**",
+                      "@tailwindcss/**",
+                      "styled-components",
+                      "styled-components/**",
+                      "styled-jsx",
+                      "styled-jsx/**",
+                      "@emotion/**",
+                      "@vanilla-extract/**",
+                      "@linaria/**",
+                      "@pandacss/**",
+                      "@stitches/**",
+                      "@mui/**",
+                      "@chakra-ui/**",
+                      "goober",
+                      "jss",
+                      "react-jss",
+                      "aphrodite",
+                      "radium",
+                      "sass",
+                      "node-sass",
+                      "sass-embedded",
+                      "less",
+                      "postcss",
+                      "clsx",
+                      "classnames"
+                    ],
+                    "message": "Styling libraries are not allowed. The design system is styled with StyleX only (stylex.create with tokens from src/tokens.stylex.ts)."
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }
