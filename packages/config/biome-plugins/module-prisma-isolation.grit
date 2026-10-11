@@ -1,0 +1,19 @@
+// Each backend module owns its Postgres schema and its Prisma client. Another module's prisma/ folder,
+// generated client or Prisma client factory (infrastructure/*prisma*) is off limits.
+language js
+
+JsModuleSource() as $src where {
+  $filename <: r"(?:.*/)?apps/api/src/modules/([^/]+)/(.*)"($own, $rest),
+  or {
+    and {
+      $src <: r"[\"']((?:\.\./)+)([^./][^/]*)/(.*)[\"']"($ups, $other, $tail),
+      $depth = length(split(`$rest/`, "/")),
+      $climbs = length(split($ups, "/")),
+      $climbs <: $depth
+    },
+    $src <: r"[\"'](?:.*/)?modules/([^/]+)/(.*)[\"']"($other, $tail)
+  },
+  not $other <: $own,
+  $tail <: r"(?:prisma|infrastructure/[^/]*prisma[^/]*)(?:/.*)?",
+  register_diagnostic(span=$src, message=`Do not import the $other module's Prisma client or prisma/ folder: each module owns its schema and client. Call $other through modules/$other/index.ts and inject its service via the module composition root.`)
+}

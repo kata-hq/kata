@@ -1,0 +1,7 @@
+// Apps style only through @kata/design-system. A JSX `style` attribute bypasses the tokens and themes.
+language js
+
+JsxAttribute(name=$name) as $attr where {
+  $name <: `style`,
+  register_diagnostic(span=$attr, message="Inline style= is not allowed outside @kata/design-system. Use components from @kata/design-system and their variant props; for custom layout use stylex.create with tokens from @kata/design-system/tokens.stylex and spread stylex.props(...).")
+}

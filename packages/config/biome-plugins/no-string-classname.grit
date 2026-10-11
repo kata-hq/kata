@@ -1,0 +1,14 @@
+// Apps have no CSS files, so a string className can only point at global or third-party CSS.
+language js
+
+JsxAttribute(name=$name, initializer=$value) as $attr where {
+  $name <: `className`,
+  $value <: or {
+    JsxString(),
+    JsxExpressionAttributeValue(expression=or {
+      JsStringLiteralExpression(),
+      JsTemplateExpression()
+    })
+  },
+  register_diagnostic(span=$attr, message="String className= is not allowed outside @kata/design-system. Use components from @kata/design-system and their variant props; for custom layout use stylex.create with tokens from @kata/design-system/tokens.stylex and spread stylex.props(...).")
+}

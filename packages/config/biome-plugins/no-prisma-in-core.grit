@@ -1,0 +1,14 @@
+// domain/ and application/ never see Prisma. Services depend on repository interfaces declared in domain/;
+// the Prisma implementation lives in infrastructure/ and is wired in module.ts.
+language js
+
+JsModuleSource() as $src where {
+  $filename <: r"(?:.*/)?apps/api/src/modules/[^/]+/(?:domain|application)/.*",
+  $src <: or {
+    r"[\"'](?:@prisma/.*|prisma|prisma/.*)[\"']",
+    r"[\"'].*/prisma/generated.*[\"']",
+    r"[\"'](?:.*/)?prisma/.*[\"']",
+    r"[\"'].*/infrastructure/[^/]*prisma[^/]*[\"']"
+  },
+  register_diagnostic(span=$src, message="Prisma import in domain/ or application/. Services depend on the repository interface in domain/. Inject the Prisma repository from module.ts.")
+}
