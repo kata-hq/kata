@@ -11,7 +11,7 @@ const STEPS: readonly Step[] = [
   },
   { name: "typecheck", script: "typecheck", fix: "fix the type errors above" },
   {
-    name: "unit tests + coverage gate (90% lines per workspace)",
+    name: "unit tests + coverage gate (90% lines per file)",
     script: "test:coverage",
     fix: "fix the failing tests, or add tests for the files listed under 90% lines",
   },

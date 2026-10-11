@@ -80,7 +80,7 @@ For rules that need the file system or a view across files. In [`tests/architect
 
 | Rule | Where |
 |---|---|
-| 90% line coverage per workspace | `coverageThreshold` in each workspace `bunfig.toml`, run by `bun run test:coverage` |
+| 90% line coverage for every file the unit tests load | `coverageThreshold` in each workspace `bunfig.toml`, run by `bun run test:coverage` |
 | Everything above, in order, fail fast | `bun run check` ([`scripts/check.ts`](../scripts/check.ts)) |
 
 Suppressing a guardrail (`biome-ignore lint/plugin: …`) needs a reason in the comment and a reviewer's agreement.

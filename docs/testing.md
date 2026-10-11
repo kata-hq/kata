@@ -10,7 +10,7 @@ It runs, in order, and stops at the first failure with a summary of which step f
 
 1. `bun run lint`: Biome check (lint, format, import order, guardrail plugins).
 2. `bun run typecheck`: `tsc` for every workspace, `scripts/` and `tests/architecture/`.
-3. `bun run test:coverage`: unit tests of every workspace with the coverage gate.
+3. `bun run test:coverage`: unit tests of every workspace with the coverage gate (90% lines per file).
 4. `bun run test:int`: integration tests (needs Postgres: `bun run db:up`).
 5. `bun run test:arch`: architecture tests.
 
@@ -27,7 +27,7 @@ It runs, in order, and stops at the first failure with a summary of which step f
 
 ## Coverage
 
-- Gate: **90% of lines** per workspace. `bun run test:coverage` runs `bun test --coverage` in each workspace; each `bunfig.toml` sets `coverageThreshold = { lines = 0.9, functions = 0 }` and Bun exits non-zero below it. `functions = 0` because Bun otherwise applies the threshold to functions too.
+- Gate: **90% of lines in every file** the unit tests load. `bun run test:coverage` runs `bun test --coverage` in each workspace; each `bunfig.toml` sets `coverageThreshold = { lines = 0.9, functions = 0 }`. Bun checks the threshold file by file (a file at 68% fails the run even when the workspace total is 92%) and exits non-zero without a message: look for the file under 90% in the coverage table. `functions = 0` because Bun otherwise applies the threshold to functions too.
 - The gate counts unit tests only. In `apps/api`, Prisma repositories also get a unit test of their mapping with a fake client; their queries are covered by the integration tests.
 - Excluded from coverage (`coveragePathIgnorePatterns`), and why:
   - `apps/api`: `**/generated/**` (generated Prisma client), `src/server.ts` (entry file), `src/shared/persistence/database-admin.ts` and `test-database.ts` (database tooling for scripts and test setup, exercised by the integration run).
