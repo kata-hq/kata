@@ -32,6 +32,10 @@
       "includes": ["**", "!**/packages/design-system/**"]
     },
     {
+      "path": "./packages/config/biome-plugins/web-api-type-only.grit",
+      "includes": ["**/apps/web/**"]
+    },
+    {
       "path": "./packages/config/biome-plugins/module-public-api.grit",
       "includes": ["**/apps/api/src/**"]
     },
