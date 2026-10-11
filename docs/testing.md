@@ -13,6 +13,7 @@ It runs, in order, and stops at the first failure with a summary of which step f
 3. `bun run test:coverage`: unit tests of every workspace with the coverage gate (90% lines per file).
 4. `bun run test:int`: integration tests (needs Postgres: `bun run db:up`).
 5. `bun run test:arch`: architecture tests.
+6. `bun run test:scripts`: unit tests of the root `scripts/` (no coverage gate).
 
 ## Unit tests
 
