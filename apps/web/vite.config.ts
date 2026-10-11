@@ -23,6 +23,11 @@ export default defineConfig(({ mode }) => {
       stylex.vite({ useCSSLayers: true, unstable_moduleResolution: { type: "commonJS", rootDir } }),
       reactRouter(),
     ],
+    // Scan the app and the design system at startup, so Vite optimizes every dependency before the first page
+    // load. Otherwise the first load gets "504 Outdated Optimize Dep" and can stay on "Loading…".
+    optimizeDeps: {
+      entries: ["app/**/*.{ts,tsx}", "../../packages/design-system/src/**/*.{ts,tsx}", "!**/*.test.{ts,tsx}"],
+    },
     server: {
       port: env.WEB_PORT,
       strictPort: true,
