@@ -61,6 +61,16 @@
         "zod": "4.6.5",
       },
     },
+    "packages/capture-parser": {
+      "name": "@kata/capture-parser",
+      "version": "0.0.0",
+      "dependencies": {
+        "@kata/shared": "workspace:*",
+      },
+      "devDependencies": {
+        "@kata/config": "workspace:*",
+      },
+    },
     "packages/config": {
       "name": "@kata/config",
       "version": "0.0.0",
@@ -192,6 +202,8 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@kata/api": ["@kata/api@workspace:apps/api"],
+
+    "@kata/capture-parser": ["@kata/capture-parser@workspace:packages/capture-parser"],
 
     "@kata/config": ["@kata/config@workspace:packages/config"],
 

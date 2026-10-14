@@ -3,7 +3,12 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { repoRoot } from "./lint-fixtures.ts";
-import { moduleDependencyViolations, moduleEdges, stylesheetsOutsideDesignSystem } from "./rules.ts";
+import {
+  moduleDependencyViolations,
+  moduleEdges,
+  pureLibraryViolations,
+  stylesheetsOutsideDesignSystem,
+} from "./rules.ts";
 
 const fixtures = join(import.meta.dir, "fixtures", "arch");
 
@@ -66,5 +71,32 @@ describe("module dependencies follow tests/architecture/module-graph.ts", () => 
       ),
     ]);
     expect(violations[1]).toContain("Invert the dependency (inject a service through module.ts)");
+  });
+});
+
+describe("pure packages have no I/O (rule A6)", () => {
+  test("the repo's pure packages import nothing else and read no clock", () => {
+    expect(pureLibraryViolations(repoRoot)).toEqual([]);
+  });
+
+  test("the fixture's imports and impure calls are reported with the fix, allowed code is not", () => {
+    const violations = pureLibraryViolations(join(fixtures, "pure"));
+    const clock = "packages/capture-parser/src/clock.ts: uses";
+    const io = "packages/planner/src/io.ts:";
+
+    expect(violations).toEqual([
+      expect.stringContaining(`${clock} Date.now() in a pure package (rule A6). Take the reference instant`),
+      expect.stringContaining(`${clock} new Date()`),
+      expect.stringContaining(`${clock} Temporal.Now`),
+      expect.stringContaining(
+        `${io} imports "node:fs" in a pure package (rule A6). Import only the package's own files`,
+      ),
+      expect.stringContaining(`${io} imports "@prisma/client"`),
+      expect.stringContaining(`${io} uses Math.random()`),
+      expect.stringContaining(`${io} uses performance.now()`),
+      expect.stringContaining(`${io} uses fetch()`),
+      expect.stringContaining(`${io} uses process`),
+      expect.stringContaining(`${io} uses Bun`),
+    ]);
   });
 });

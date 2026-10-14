@@ -40,8 +40,13 @@ const IMPORT_PATTERNS = [
 
 /** The module specifiers a TS/JS source imports or re-exports (static, side-effect and dynamic imports). */
 export function importSpecifiers(source: string): string[] {
-  const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const code = stripComments(source);
   return IMPORT_PATTERNS.flatMap((pattern) => [...code.matchAll(pattern)].map((match) => match[1] ?? ""));
+}
+
+/** The source without block comments and whole-line `//` comments. */
+export function stripComments(source: string): string {
+  return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
 }
 
 export function readText(root: string, file: string): string {
