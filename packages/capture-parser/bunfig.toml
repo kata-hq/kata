@@ -1,0 +1,6 @@
+[test]
+# `bun run test:coverage` fails when a file is below 90% lines.
+# The gate is on lines only: `functions = 0` because Bun otherwise applies the threshold to functions too.
+# Other workspaces' files (@kata/shared) count in their own workspace.
+coverageThreshold = { lines = 0.9, functions = 0 }
+coveragePathIgnorePatterns = ["../shared/**"]
