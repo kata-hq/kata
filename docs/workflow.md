@@ -70,3 +70,30 @@ Claude Code reads `CLAUDE.md` (the map and the hard rules) and the project setti
 **Permissions**: the allow-list in `.claude/settings.json` covers the usual commands (`bun install`, `bun run dev|check|test*|lint|format|typecheck|e2e|db:*|dev:isolated|docker:build`, read-only `git`, `gh` and `docker compose`). Anything else asks.
 
 **Worktrees**: each agent works in its own git worktree with its own instance (`bun run dev:isolated`, see above), so several agents can build and test at the same time.
+
+## GitHub automation
+
+Everything lives in `.github/`:
+
+| File | Runs on | Does |
+|---|---|---|
+| `workflows/ci.yml` | every PR to `main` and every push to `main` | `check`: install, migrate, `bun run check` (coverage gate included) on a Postgres service. `e2e`: `bun run e2e` (Playwright report uploaded on failure). `docker`: builds `kata-api` and `kata-web` (no push). |
+| `workflows/claude.yml` | `@claude` in an issue, comment or review; label `agent` on an issue | Claude answers the mention, or runs `/build-issue <number>` for the `agent` label. 60 turns, 60 minutes, one run at a time per issue/PR. Events from bots are ignored. |
+| `workflows/claude-review.yml` | PR opened, pushed or marked ready (not drafts) | Claude runs `/review-pr <number>`. 30 turns, 30 minutes; a new push cancels the review in progress. |
+| `ISSUE_TEMPLATE/issue.md`, `pull_request_template.md` | new issue / new PR | The issue body of the `agile-workflow` skill and the PR body. Blank issues stay enabled for epics and ideas. |
+
+The CI env (Postgres service on 5432, `DATABASE_URL`, `TEST_DATABASE_URL`) matches `.env.example`. Postgres is reachable, so `dev:isolated` and `e2e` never start docker compose there.
+
+Labels (recreate them with these commands; `--force` updates an existing label):
+
+```sh
+gh label create agent --repo kata-hq/kata --force --color 5319e7 --description "Claude implements this issue (runs /build-issue)"
+gh label create needs-human --repo kata-hq/kata --force --color d93f0b --description "An agent stopped: a person must decide or act"
+gh label create blocked --repo kata-hq/kata --force --color b60205 --description "Cannot progress until something else is done"
+```
+
+Manual steps (an admin does them once):
+
+1. Secret: run `claude setup-token` locally, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo kata-hq/kata` and paste the token. Without it the Claude workflows fail; CI does not need it.
+2. Install the Claude GitHub App on the repository: https://github.com/apps/claude.
+3. Protect `main` (Settings → Rules → Rulesets, target the default branch): require a pull request, require the status checks `check`, `e2e` and `docker` (branches up to date), block force pushes and deletion. In Settings → General → Pull Requests, allow squash merging only.
