@@ -1,4 +1,5 @@
 import {
+  AppShell,
   Box,
   Button,
   type ButtonVariant,
@@ -10,6 +11,8 @@ import {
   Icon,
   Input,
   iconNames,
+  Link,
+  NavItem,
   Select,
   Stack,
   Text,
@@ -174,6 +177,48 @@ export const ComponentGallery = ({ idPrefix }: { idPrefix: string }) => (
           <Text>Dialog content.</Text>
         </Dialog>
       </Stack>
+    </Section>
+
+    <Section title="Link">
+      <Text>
+        No account yet? <Link href="#sign-up">Create one</Link>.{" "}
+        <Link href="#help" tone="muted">
+          Help
+        </Link>
+      </Text>
+    </Section>
+
+    <Section title="NavItem">
+      <Stack gap="xxs">
+        <NavItem href="#today" label="Today (active)" icon="home" aria-current="page" />
+        <NavItem href="#week" label="Week" icon="calendar" />
+        <NavItem href="#status" label="System status" icon="activity" />
+      </Stack>
+    </Section>
+
+    <Section title="AppShell">
+      <Box border radius="md">
+        <AppShell
+          fullHeight={false}
+          navLabel={`${idPrefix} preview menu`}
+          brand={<Text weight="bold">Kata</Text>}
+          nav={
+            <>
+              <NavItem href="#today" label="Today" icon="home" aria-current="page" />
+              <NavItem href="#week" label="Week" icon="calendar" />
+            </>
+          }
+          actions={
+            <Button variant="ghost" size="sm">
+              Sign out
+            </Button>
+          }
+        >
+          <Box padding="lg">
+            <Heading level={4}>Main content</Heading>
+          </Box>
+        </AppShell>
+      </Box>
     </Section>
   </Stack>
 );

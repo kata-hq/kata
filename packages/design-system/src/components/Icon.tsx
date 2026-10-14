@@ -26,6 +26,15 @@ const paths = {
     "m19.07 4.93-1.41 1.41",
   ],
   moon: ["M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"],
+  home: ["m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z", "M9 22V12h6v10"],
+  calendar: [
+    "M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+    "M16 2v4",
+    "M8 2v4",
+    "M3 10h18",
+  ],
+  activity: ["M22 12h-4l-3 9L9 3l-3 9H2"],
+  "log-out": ["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", "m16 17 5-5-5-5", "M21 12H9"],
 } as const satisfies Record<string, readonly string[]>;
 
 export type IconName = keyof typeof paths;

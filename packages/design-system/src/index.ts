@@ -2,6 +2,8 @@
 // `.stylex`. Import them from "@kata/design-system/tokens.stylex".
 // Themes are applied only through ThemeProvider, so the theme objects are not exported.
 
+export type { AppShellProps } from "./components/AppShell.tsx";
+export { AppShell } from "./components/AppShell.tsx";
 export type { BoxBackground, BoxProps } from "./components/Box.tsx";
 export { Box } from "./components/Box.tsx";
 export type { ButtonProps, ButtonSize, ButtonVariant } from "./components/Button.tsx";
@@ -19,6 +21,10 @@ export type { IconName, IconProps, IconSize } from "./components/Icon.tsx";
 export { Icon, iconNames } from "./components/Icon.tsx";
 export type { InputProps, InputType } from "./components/Input.tsx";
 export { Input } from "./components/Input.tsx";
+export type { LinkProps, LinkTone } from "./components/Link.tsx";
+export { Link } from "./components/Link.tsx";
+export type { NavItemProps } from "./components/NavItem.tsx";
+export { NavItem } from "./components/NavItem.tsx";
 export type { SelectOption, SelectProps } from "./components/Select.tsx";
 export { Select } from "./components/Select.tsx";
 export type { StackAlign, StackDirection, StackJustify, StackProps } from "./components/Stack.tsx";
