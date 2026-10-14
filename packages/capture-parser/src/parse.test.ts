@@ -4,8 +4,8 @@ import { context } from "./testing/context.ts";
 
 describe("parseCapture", () => {
   test.each([
-    ["DM compta", "DM compta"],
-    ["  lire chap 3  ", "lire chap 3"],
+    ["compta stats", "compta stats"],
+    ["  chap 3  ", "chap 3"],
     ["", ""],
   ])("%p is accepted with %p as title", (input, title) => {
     expect(parseCapture(input, context())).toEqual({

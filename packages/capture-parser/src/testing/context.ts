@@ -7,10 +7,10 @@ export const REFERENCE = "2026-10-14T07:00:00Z";
 
 export const TASK_TYPES: readonly TaskTypeCandidate[] = [
   { key: "homework", label: "DM", aliases: ["dm", "devoir", "devoir maison"] },
-  { key: "lab_report", label: "Compte rendu de TP", aliases: ["tp", "compte rendu", "cr"] },
+  { key: "lab_report", label: "Compte rendu de TP", aliases: ["tp", "compte rendu"] },
   { key: "presentation", label: "Exposé", aliases: ["exposé", "oral", "présentation"] },
   { key: "reading", label: "Lecture", aliases: ["lire", "lecture"] },
-  { key: "revision", label: "Révision", aliases: ["réviser", "révision", "revoir"] },
+  { key: "revision", label: "Révision", aliases: ["réviser", "révision"] },
   { key: "exam", label: "Examen", aliases: ["cc", "partiel", "exam", "examen"] },
 ];
 
