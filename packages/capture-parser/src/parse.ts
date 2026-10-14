@@ -1,12 +1,43 @@
 // parseCapture: one line of quick capture → course, type, deadline and title (spec §7.4, rules C1–C7).
 // A pure function: the reference instant, time zone, courses and task types are inputs.
 import { err, ok, type Result } from "@kata/shared";
-import type { Capture, CaptureContext, CaptureError } from "./types.ts";
+import { type DateMatch, findDate } from "./dates.ts";
+import { type Token, tokenize } from "./text.ts";
+import type { Capture, CaptureContext, CaptureError, Deadline } from "./types.ts";
+
+/** Rule K-R7: a deadline without a time is the end of that day, 23:59 local time. */
+const END_OF_DAY = new Temporal.PlainTime(23, 59);
 
 export function parseCapture(input: string, context: CaptureContext): Result<Capture, CaptureError> {
   const now = referenceIn(context);
   if (!now.ok) return now;
-  return ok({ input, title: input.trim(), course: null, taskType: null, deadline: null });
+  const tokens = tokenize(input);
+  const date = findDate(tokens, now.value);
+  return ok({
+    input,
+    title: input.trim(),
+    course: null,
+    taskType: null,
+    deadline: date === null ? null : deadline(input, tokens, date, context.timeZone),
+  });
+}
+
+function deadline(input: string, tokens: readonly Token[], match: DateMatch, timeZone: string): Deadline {
+  const instant = match.date.toZonedDateTime({ timeZone, plainTime: match.time ?? END_OF_DAY }).toInstant();
+  return {
+    date: match.date.toString(),
+    time: match.time === null ? null : match.time.toString({ smallestUnit: "minute" }),
+    instant: instant.toString(),
+    matched: spanText(input, tokens, match.start, match.end),
+  };
+}
+
+/** The input text from token `start` to token `end - 1`, as typed. */
+function spanText(input: string, tokens: readonly Token[], start: number, end: number): string {
+  const first = tokens[start];
+  const last = tokens[end - 1];
+  if (first === undefined || last === undefined) return "";
+  return input.slice(first.index, last.index + last.text.length);
 }
 
 /** The reference instant in the person's time zone, or why the context is invalid. */

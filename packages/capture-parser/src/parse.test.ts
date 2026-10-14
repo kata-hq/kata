@@ -4,7 +4,7 @@ import { context } from "./testing/context.ts";
 
 describe("parseCapture", () => {
   test.each([
-    ["DM compta vendredi", "DM compta vendredi"],
+    ["DM compta", "DM compta"],
     ["  lire chap 3  ", "lire chap 3"],
     ["", ""],
   ])("%p is accepted with %p as title", (input, title) => {
