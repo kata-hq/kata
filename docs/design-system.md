@@ -52,8 +52,18 @@ The layout components accept `id`, `role`, `aria-*`, `data-testid` and `children
 | `Text` | `as` (`span`, `p`, `div`, `strong`, `em`, `small`, `code`; default `span`), `size` (`xs` … `xl`; default `md`), `weight` (`regular`, `medium`, `semibold`, `bold`), `tone` (`default`, `muted`, `accent`, `danger`, `success`, `warning`), `align` (`start`, `center`, `end`), `truncate` (boolean) |
 | `Heading` | `level` (1–4, required; renders `h1`–`h4`), `tone` |
 | `Card` | `as` (`div`, `section`, `article`), `variant` (`outlined`, `elevated`), `padding` (SpaceToken; default `lg`) |
-| `Icon` | `name` (`check`, `x`, `plus`, `chevron-down`, `info`, `alert`, `sun`, `moon`), `size` (`sm` 16px, `md` 20px, `lg` 24px), `tone`, `label`. Without `label` the icon is decorative (`aria-hidden`); with it, it is `role="img"` with that name. |
+| `Icon` | `name` (`check`, `x`, `plus`, `chevron-down`, `info`, `alert`, `sun`, `moon`, `home`, `calendar`, `activity`, `log-out`), `size` (`sm` 16px, `md` 20px, `lg` 24px), `tone`, `label`. Without `label` the icon is decorative (`aria-hidden`); with it, it is `role="img"` with that name. |
 | `ThemeProvider` | `theme` (`system`, `light`, `dark`) |
+
+### Navigation components
+
+`Link` and `NavItem` render an `<a>`, or the element given in `render` (Base UI `useRender`), so the app can pass a router link without the design system importing `react-router`. The design system's classes and children go on that element: `render={<NavLink to="/" end />}`.
+
+| Component | Props |
+|---|---|
+| `AppShell` | Page layout of the app. `brand` (top of the menu), `nav` (menu entries, in a `<nav>` named `navLabel`, default `Main`), `actions` (bottom of the menu), `children` (in `<main>`), `fullHeight` (default `true`: fills the viewport, sticky menu), `data-testid`. Sidebar of 240px; under 768px wide the menu becomes a top bar. |
+| `NavItem` | A menu entry: `label` (required), `icon` (an `IconName`), `href`, `render`, plus `CommonProps`. It looks active when the rendered element has `aria-current="page"` (React Router's `NavLink` sets it). |
+| `Link` | Inline text link: `href`, `render`, `tone` (`accent` default, `muted`), plus `CommonProps`. |
 
 ### Form and overlay components
 
