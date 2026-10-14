@@ -42,7 +42,7 @@ The product spec ([product/mvp-spec-fr.html](product/mvp-spec-fr.html), §10.4) 
 | A3 | A module uses only its own Prisma client. | Same (`module-prisma-isolation.grit`). |
 | A4 | No foreign key between modules; IDs checked through the port. | **Overridden:** cross-module foreign keys are allowed downward only (migration order), written in SQL. See [database.md](database.md). |
 | A5 | Frontend imports the backend with `import type` only. | Same (`web-api-type-only.grit`). |
-| A6 | `lib/planner` and `lib/capture-parser` have no I/O. | Not enforced yet: those packages do not exist. Add a rule when they are created. |
+| A6 | `lib/planner` and `lib/capture-parser` have no I/O. | Same, for `packages/planner` and `packages/capture-parser` (`PURE_PACKAGES` in `rules.ts`): they import only their own files and `@kata/shared`, and receive "now", the time zone and the data as inputs (pure packages test). |
 | A7 | Enforced by Biome rules (editor feedback) + `tests/architecture` in CI. | Same: GritQL plugins and `noRestrictedImports` in Biome, architecture tests in `tests/architecture`, all run by `bun run check`. |
 
 ## Guardrails
@@ -75,6 +75,7 @@ For rules that need the file system or a view across files. In [`tests/architect
 |---|---|---|
 | No stylesheet files outside the design system | `rules.ts` `stylesheetsOutsideDesignSystem` | any `*.css`, `*.scss`, `*.sass`, `*.less` file outside `packages/design-system` |
 | Module dependency direction | `rules.ts` `moduleDependencyViolations`, graph in `module-graph.ts` | an import from one module into another that the graph does not allow; a module folder missing from the graph |
+| Pure packages have no I/O (A6) | `rules.ts` `pureLibraryViolations`, list in `PURE_PACKAGES` | in a pure package's `src/` (tests excluded): an import other than its own files and `@kata/shared`; `Date.now()`, `new Date()`, `Temporal.Now`, `Math.random()`, `performance.now()`, `fetch()`, `process`, `Bun` |
 
 ### Tests and coverage
 
