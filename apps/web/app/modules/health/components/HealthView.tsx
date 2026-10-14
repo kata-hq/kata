@@ -7,7 +7,7 @@ export type HealthViewProps = {
   health: HealthState;
 };
 
-/** Formats the last `system_check` time in the reader's time zone. */
+/** Formats the time of the last health check (`lastCheck`) in the reader's time zone. */
 export const formatCheckTime = (iso: string) =>
   new Date(iso).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "medium" });
 
