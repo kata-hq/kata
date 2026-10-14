@@ -12,6 +12,10 @@ const envSchema = z.object({
     .max(65_535, { error: "must be a port number" })
     .default(3000),
   LOG_LEVEL: z.enum(LOG_LEVELS, { error: `must be one of ${LOG_LEVELS.join(", ")}` }).default("info"),
+  /** Signs session cookies and tokens. Generate one with `openssl rand -base64 32`. */
+  BETTER_AUTH_SECRET: z.string().min(32, { error: "must be at least 32 characters" }),
+  /** Public origin of the app (the web app's URL: the API is served under it at `/api`). */
+  BETTER_AUTH_URL: z.url({ protocol: /^https?$/, error: "must be an http(s):// URL" }),
 });
 
 export type Env = z.infer<typeof envSchema>;

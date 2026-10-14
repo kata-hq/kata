@@ -2,12 +2,20 @@ import { Hono } from "hono";
 import type { Env } from "./env.ts";
 import type { Logger } from "./logger.ts";
 import { createHealthModule, createHealthPrismaClient, type HealthRoutes } from "./modules/health/index.ts";
+import {
+  AUTH_BASE_PATH,
+  type AuthRoutes,
+  createIdentityModule,
+  createIdentityPrismaClient,
+} from "./modules/identity/index.ts";
 import type { AppEnv } from "./shared/http/app-env.ts";
 import { errorHandler, notFound } from "./shared/http/errors.ts";
 import { requestLog } from "./shared/http/request-log.ts";
 
 export type AppRoutes = {
   readonly health: HealthRoutes;
+  /** Better Auth's endpoints (identity module), at `/api/auth`. */
+  readonly auth: AuthRoutes;
 };
 
 /** The HTTP app: request log, shared error format, module routes under `/api/<module>`. */
@@ -17,7 +25,7 @@ export function buildApp(logger: Logger, routes: AppRoutes) {
   app.onError(errorHandler(logger));
   app.notFound(notFound);
   // Keep `.route()` chained: the return type carries every route for Hono RPC (`AppType`).
-  return app.route("/api/health", routes.health);
+  return app.route("/api/health", routes.health).route(AUTH_BASE_PATH, routes.auth);
 }
 
 /** Type of the API for the web client: `hc<AppType>(baseUrl)`. */
@@ -33,11 +41,17 @@ export type RunningApp = {
 export function createApp(env: Env, logger: Logger): RunningApp {
   const healthPrisma = createHealthPrismaClient(env.DATABASE_URL);
   const health = createHealthModule({ prisma: healthPrisma, logger });
+  const identityPrisma = createIdentityPrismaClient(env.DATABASE_URL);
+  const identity = createIdentityModule({
+    prisma: identityPrisma,
+    logger,
+    auth: { secret: env.BETTER_AUTH_SECRET, baseURL: env.BETTER_AUTH_URL },
+  });
 
   return {
-    app: buildApp(logger, { health: health.routes }),
+    app: buildApp(logger, { health: health.routes, auth: identity.authRoutes }),
     close: async () => {
-      await healthPrisma.$disconnect();
+      await Promise.all([healthPrisma.$disconnect(), identityPrisma.$disconnect()]);
     },
   };
 }
