@@ -13,7 +13,7 @@ export type PersistenceModule = {
 
 /**
  * Migration order. A module may reference (foreign key) only modules listed before it.
- * Future order: identity, academic, work, planning, notes, platform.
+ * Future order: health, identity, academic, work, planning, notes, platform.
  */
 export const persistenceModules: readonly PersistenceModule[] = [
   {
@@ -22,6 +22,12 @@ export const persistenceModules: readonly PersistenceModule[] = [
     prismaConfig: fileURLToPath(new URL("./modules/health/prisma/prisma.config.ts", import.meta.url)),
     // Lazy: `db:generate` reads this list before the generated client exists.
     seed: async (url) => (await import("./modules/health/prisma/seed.ts")).seedHealth(url),
+  },
+  {
+    name: "identity",
+    schema: "identity",
+    prismaConfig: fileURLToPath(new URL("./modules/identity/prisma/prisma.config.ts", import.meta.url)),
+    seed: async (url) => (await import("./modules/identity/prisma/seed.ts")).seedIdentity(url),
   },
 ];
 

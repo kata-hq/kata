@@ -1,0 +1,90 @@
+// Identity module. Postgres schema `identity`. Its migration history (`_prisma_migrations`) lives in the same schema.
+// The Auth* tables follow Better Auth's core schema (spec M11: "Auth" prefix so a class session is not an auth session).
+// Personal data: see the RGPD register in docs/database.md.
+generator client {
+  provider               = "prisma-client"
+  output                 = "./generated"
+  moduleFormat           = "esm"
+  importFileExtension    = "ts"
+  generatedFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["identity"]
+}
+
+/// A person with an account. Better Auth's `user` model plus the person's time zone and locale (spec 9.2).
+model User {
+  id            String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  email         String   @unique
+  name          String
+  emailVerified Boolean  @default(false) @map("email_verified")
+  image         String?
+  /// IANA time zone used for local times (spec M7).
+  timezone      String   @default("Europe/Paris")
+  locale        String   @default("fr")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  sessions AuthSession[]
+  accounts AuthAccount[]
+
+  @@map("user")
+  @@schema("identity")
+}
+
+/// A signed-in browser (cookie). Deleted at sign-out; expired rows are cleaned by Better Auth.
+model AuthSession {
+  id        String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  token     String   @unique
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_session")
+  @@schema("identity")
+}
+
+/// A way to sign in. For email + password: providerId "credential" and the password hash.
+model AuthAccount {
+  id                    String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  userId                String    @map("user_id") @db.Uuid
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  password              String?
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz(6)
+  scope                 String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_account")
+  @@schema("identity")
+}
+
+/// Short-lived tokens (email verification, password reset). Unused until those flows exist.
+model AuthVerification {
+  id         String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([identifier])
+  @@map("auth_verification")
+  @@schema("identity")
+}
