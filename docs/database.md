@@ -3,7 +3,7 @@
 ## How persistence works
 
 - **One Postgres database** (`DATABASE_URL`) for the whole API. Postgres 18 runs in Docker (`compose.yaml`, image `postgres:18.6-alpine`).
-- **One Postgres schema per module.** The health module owns schema `health`. Future modules: `identity`, `academic`, `work`, `planning`, `notes`, `platform`.
+- **One Postgres schema per module.** The health module owns schema `health`, the identity module schema `identity`. Future modules: `academic`, `work`, `planning`, `notes`, `platform`.
 - **One Prisma schema, client and migrations folder per module**, in `apps/api/src/modules/<module>/prisma/`:
   - `schema.prisma`: `schemas = ["<module>"]` in the datasource and `@@schema("<module>")` on every model.
   - `prisma.config.ts`: points Prisma at the shared `DATABASE_URL` with `?schema=<module>`, so the module's migration history (`_prisma_migrations`) lives in its own schema.
@@ -15,7 +15,7 @@
 
 ### Migration order and foreign keys
 
-`apps/api/src/persistence-modules.ts` holds the **ordered module list**. `bun run db:migrate` applies each module's migrations in that order. Today: `health`. Target order: `health`, `identity`, `academic`, `work`, `planning`, `notes`, `platform`.
+`apps/api/src/persistence-modules.ts` holds the **ordered module list**. `bun run db:migrate` applies each module's migrations in that order. Today: `health`, `identity`. Target order: `health`, `identity`, `academic`, `work`, `planning`, `notes`, `platform`.
 
 Foreign keys between modules are allowed **only downward**: a table may reference a table of a module that comes **earlier** in the list. Write those foreign keys by hand in the migration SQL (Prisma does not know the other module's models). Foreign keys inside one module are normal Prisma relations.
 
@@ -104,11 +104,12 @@ All worktrees share the `kata-postgres` container (compose project `kata`) and i
 
 Every table with personal data must be listed here, in the same PR that creates it.
 
-**Tables with personal data: none yet.**
-
 | Table | Personal data | Purpose | Legal basis | Retention / deletion |
 |---|---|---|---|---|
-| _(none)_ | | | | |
+| `identity.user` | `email`, `name`, `image` (unused), `timezone`, `locale` | the account: sign-in, display name, local times | contract | until the account is deleted (D3 admin script), with every row that references it |
+| `identity.auth_session` | `token`, `ip_address`, `user_agent`, `expires_at` | keep the person signed in (cookie); IP and user agent are written by Better Auth for session security and rate limiting | contract (session), legitimate interest (security) | deleted at sign-out; expired rows removed by Better Auth; all deleted with the user (cascade) |
+| `identity.auth_account` | `password` (scrypt hash), provider tokens (unused for email + password) | check the password at sign-in | contract | deleted with the user (cascade) |
+| `identity.auth_verification` | `identifier` (an email), `value` (a token) | short-lived tokens for email verification or password reset (unused until those flows exist) | contract | expires (`expires_at`); removed by Better Auth after use |
 
 Template for a new row: table (`schema.table`), the personal data columns, why we keep them, the legal basis (contract, consent, legitimate interest, legal obligation), and how long we keep them and how they are deleted (for example: deleted with the account).
 
@@ -128,6 +129,7 @@ The API writes JSON lines to stdout (`apps/api/src/logger.ts`): `time`, `level`,
 | `unhandled error` | `requestId`, `error` (error class name), `stack` |
 | `health check failed` (warn) | `error` (error class name, or the `RepositoryError` type), `code` (driver error code such as `ECONNREFUSED`, when there is one). Never the error message. |
 | `change listener failed` (warn) | `error` (error class name). No workspace id, never the error message. |
+| `auth error` / `auth warning` (error / warn) | `error` (error class name, when Better Auth passes one). Never Better Auth's message: it can quote user input. |
 | `invalid environment` | `variables`: name and problem of each bad variable, never its value |
 | `api started` / `api stopping` / `api stopped` | `port`, `signal` |
 

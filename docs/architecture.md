@@ -4,13 +4,13 @@ Kata is one Bun monorepo: a Hono API (`apps/api`), a React Router SPA (`apps/web
 
 ## Backend modules
 
-The API is one process made of modules in `apps/api/src/modules/<module>/`. Each module owns a Postgres schema, a Prisma client and its migrations. Today only `health` exists; the others are the target from the product spec.
+The API is one process made of modules in `apps/api/src/modules/<module>/`. Each module owns a Postgres schema, a Prisma client and its migrations. Today `health` and `identity` exist; the others are the target from the product spec.
 
 | Module | Owns | May depend on |
 |---|---|---|
 | `health` | system checks (`/api/health`) | nothing |
 | `platform` | cross-cutting services (notifications, admin) | nothing |
-| `identity` | users, sessions, workspaces | `platform` |
+| `identity` | users, sessions, workspaces; Better Auth (email + password) at `/api/auth/*` | `platform` |
 | `academic` | semesters, courses, timetable | `identity`, `platform` |
 | `work` | tasks, exams | `academic`, `platform` |
 | `notes` | notes | `academic`, `platform` |
