@@ -225,13 +225,13 @@ describe("per task per day (S13) and buffer (S14)", () => {
 });
 
 describe("plan output", () => {
-  test("fixed blocks keep their id and count for the task's work; movable and dropped blocks are removed", () => {
+  test("fixed blocks keep their id and count for the task's work; invalid and dropped blocks are removed", () => {
     const { raw, blocks, removedBlockIds } = run({
       freeTime: weekdays("18:00", "22:00"),
       tasks: [task("t1", { deadline: at("2026-10-16T23:59"), remainingMin: 150 })],
       blocks: [
         block("pin", "t1", "2026-10-13T20:00", "2026-10-13T21:00", { pinned: true }),
-        block("old", "t1", "2026-10-15T18:00", "2026-10-15T19:00"),
+        block("old", "t1", "2026-10-15T16:00", "2026-10-15T17:00"), // outside free time: invalid
         block("orphan", "gone", "2026-10-15T20:00", "2026-10-15T21:00"),
       ],
     });
