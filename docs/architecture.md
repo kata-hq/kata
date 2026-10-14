@@ -1,6 +1,6 @@
 # Architecture
 
-Kata is one Bun monorepo: a Hono API (`apps/api`), a React Router SPA (`apps/web`), and internal packages (`packages/*`). This page is the map of the backend modules, the rules between them, and the tools that enforce every rule. The module internals (layers, composition roots) are in [module-pattern.md](module-pattern.md); the database per module is in [database.md](database.md).
+Kata is one Bun monorepo: a Hono API (`apps/api`), a React Router SPA (`apps/web`), and internal packages (`packages/*`: `config`, `shared`, `design-system`, and the pure `planner` and `capture-parser`). This page is the map of the backend modules, the rules between them, and the tools that enforce every rule. The module internals (layers, composition roots) are in [module-pattern.md](module-pattern.md); the database per module is in [database.md](database.md).
 
 ## Backend modules
 
@@ -30,6 +30,10 @@ The API is one process made of modules in `apps/api/src/modules/<module>/`. Each
 
 - `apps/web` styles only through `@kata/design-system` (see [design-system.md](design-system.md)).
 - `apps/web` imports `@kata/api` with `import type` only (the Hono RPC `AppType`); it calls the API through `app/api-client.ts`.
+
+### Pure packages
+
+`packages/planner` (`@kata/planner`, spec §7.1) is a pure function: `plan(input)` returns the same output for the same input. It reads no database, no clock and no network (A6): the caller (the future `planning` module) loads the data, passes `now`, and applies the result. Time uses `Temporal` (native in Bun): `Temporal.Instant` for instants, local `Temporal.PlainTime` and an IANA `timeZone` for free-time rules. The spec's "proposition" values are inputs (`PlannerSettings`, defaults in `DEFAULT_PLANNER_SETTINGS`), never constants in the logic. `PLANNER_VERSION` changes when the behavior changes.
 
 ## Spec rules A1–A7 and what we do
 

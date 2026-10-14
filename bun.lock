@@ -100,6 +100,16 @@
         "react-dom": "19.3.0",
       },
     },
+    "packages/planner": {
+      "name": "@kata/planner",
+      "version": "0.0.0",
+      "dependencies": {
+        "@kata/shared": "workspace:*",
+      },
+      "devDependencies": {
+        "@kata/config": "workspace:*",
+      },
+    },
     "packages/shared": {
       "name": "@kata/shared",
       "version": "0.0.0",
@@ -210,6 +220,8 @@
     "@kata/design-system": ["@kata/design-system@workspace:packages/design-system"],
 
     "@kata/e2e": ["@kata/e2e@workspace:apps/e2e"],
+
+    "@kata/planner": ["@kata/planner@workspace:packages/planner"],
 
     "@kata/shared": ["@kata/shared@workspace:packages/shared"],
 
