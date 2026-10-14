@@ -1,0 +1,20 @@
+{
+  "name": "@kata/planner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "test:coverage": "bun test --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kata/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@kata/config": "workspace:*"
+  }
+}
