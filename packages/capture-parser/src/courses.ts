@@ -1,34 +1,13 @@
 // Rule C4: the course, in three passes (exact, start of the name, close text). Under the threshold, or
 // when two courses match equally well, there is no course: a wrong course is worse than no course.
 import { type FreeWords, type Phrase, type PhraseMatch, phrasesAt, wordsOf } from "./phrases.ts";
+import { SHORT_WORDS } from "./text.ts";
 import type { CourseCandidate } from "./types.ts";
 
 /** Minimum similarity (1 - Damerau-Levenshtein distance / longer length) for the close text pass. */
 export const CLOSE_TEXT_THRESHOLD = 0.75;
 const MIN_PREFIX_LENGTH = 3;
 const MIN_CLOSE_LENGTH = 4;
-/** Short French words that never select a course on their own. */
-const STOP_WORDS = new Set([
-  ...["a", "au", "aux", "avec", "ce", "ces", "cet", "cette", "d", "dans", "de", "des", "du", "en", "et"],
-  ...[
-    "l",
-    "la",
-    "le",
-    "les",
-    "ma",
-    "mes",
-    "mon",
-    "ou",
-    "par",
-    "pour",
-    "sa",
-    "ses",
-    "son",
-    "sur",
-    "un",
-    "une",
-  ],
-]);
 
 type Match = PhraseMatch<CourseCandidate>;
 /** A pass finds one course, finds none (undefined), or finds several equally good ones (ambiguous). */
@@ -99,7 +78,7 @@ function closeTextPass(words: FreeWords, courses: readonly CourseCandidate[]): P
 }
 
 function closeTargets(course: CourseCandidate): string[] {
-  const firstWord = wordsOf(course.name).find((word) => !STOP_WORDS.has(word));
+  const firstWord = wordsOf(course.name).find((word) => !SHORT_WORDS.has(word));
   return [
     firstWord ?? "",
     ...[course.shortName ?? "", ...course.aliases].map((text) => wordsOf(text).join(" ")),
@@ -115,7 +94,7 @@ function unique(matches: readonly Match[]): PassResult {
 
 /** A free word that can select a course: not a short French word, not a number. */
 function significant(word: string | null | undefined): word is string {
-  return word !== null && word !== undefined && !STOP_WORDS.has(word) && !/^\d+$/.test(word);
+  return word !== null && word !== undefined && !SHORT_WORDS.has(word) && !/^\d+$/.test(word);
 }
 
 /** End (exclusive) of the run of free words that starts at `start`. */
