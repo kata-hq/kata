@@ -10,6 +10,7 @@ import {
 } from "./contract.ts";
 import { placeTasks, type Slot } from "./placement.ts";
 import { type UnreasonedBlock, withReasons } from "./reasons.ts";
+import { riskReport } from "./risk.ts";
 import { keepValidBlocks } from "./stability.ts";
 import { validateInput } from "./validate.ts";
 
@@ -43,7 +44,7 @@ function planValid(input: PlannerInput): PlannerOutput {
     blocks: withReasons(blocks, input),
     removedBlockIds: [...calendar.droppedBlockIds, ...removed.map((b) => b.id)],
     unplaced: attempt.unplaced,
-    risks: [],
+    risks: riskReport(input, calendar),
   };
 }
 
