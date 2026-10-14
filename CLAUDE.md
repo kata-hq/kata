@@ -12,7 +12,7 @@ Bun 1.4 workspaces, TypeScript 7 strict. API: Hono 4 + Hono RPC, Zod, Prisma 7 w
 - Planned backend modules and what each may depend on: `platform` (nothing), `identity` → platform, `academic` → identity, platform, `work` → academic, platform, `notes` → academic, platform, `planning` → work, academic, platform. Any other direction is forbidden. Graph in `tests/architecture/module-graph.ts`.
 - `apps/web/app/modules/<module>/`: frontend modules (components, API calls through `app/api-client.ts`).
 - `apps/e2e`: Playwright tests.
-- `packages/shared` (Result, Option, common types), `packages/design-system` (tokens, themes, components), `packages/config` (tsconfig, Biome base, GritQL plugins), `packages/planner` (the pure planner: no database, no clock, no network; `now` is an input), `packages/capture-parser` (pure quick capture parser: no I/O, "now" and data are inputs).
+- `packages/shared` (Result, Option, common types), `packages/design-system` (tokens, themes, components), `packages/config` (tsconfig, Biome base, GritQL plugins), `packages/planner` (the pure planner: no database, no clock, no network; `now` is an input), `packages/capture-parser` (pure quick capture parser: no I/O, "now" and data are inputs), `packages/time` (Temporal and the local time ↔ UTC helpers, spec M7).
 - `scripts/`: root Bun scripts (check, db, isolated instances, Claude Code hooks). `tests/architecture/`: architecture tests.
 
 ## Commands

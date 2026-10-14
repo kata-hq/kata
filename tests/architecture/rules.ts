@@ -71,7 +71,7 @@ export function moduleDependencyViolations(root: string): string[] {
 
 /** Pure libraries (spec rule A6): no database, no clock, no network. Their inputs carry "now" and the data. */
 export const PURE_PACKAGES = ["packages/capture-parser", "packages/planner"] as const;
-const PURE_ALLOWED_IMPORTS = ["@kata/shared"];
+const PURE_ALLOWED_IMPORTS = ["@kata/shared", "@kata/time"];
 const IMPURE_CALLS: readonly (readonly [pattern: RegExp, name: string])[] = [
   [/\bDate\.now\s*\(/, "Date.now()"],
   [/\bnew\s+Date\s*\(\s*\)/, "new Date()"],
