@@ -4,10 +4,12 @@ import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 import { repoRoot } from "./lint-fixtures.ts";
 import {
+  contentModels,
   moduleDependencyViolations,
   moduleEdges,
   pureLibraryViolations,
   stylesheetsOutsideDesignSystem,
+  unscopedContentQueries,
 } from "./rules.ts";
 
 const fixtures = join(import.meta.dir, "fixtures", "arch");
@@ -98,5 +100,29 @@ describe("pure packages have no I/O (rule A6)", () => {
       expect.stringContaining(`${io} uses process`),
       expect.stringContaining(`${io} uses Bun`),
     ]);
+  });
+});
+
+describe("content-model queries go through the workspace scope", () => {
+  test("the repo has no unscoped query", () => {
+    expect(unscopedContentQueries(repoRoot)).toEqual([]);
+  });
+
+  test("content models are the models with a workspaceId field", () => {
+    expect(contentModels(join(fixtures, "scoping"))).toEqual(new Map([["academic", ["course"]]]));
+  });
+
+  test("the fixture's unscoped queries are reported with file, line and fix; scoped ones, creates and tests are not", () => {
+    const violations = unscopedContentQueries(join(fixtures, "scoping"));
+
+    expect(violations).toEqual([
+      expect.stringContaining(
+        'apps/api/src/modules/academic/infrastructure/unscoped-course-repository.ts:6: course.findMany(…) on content model "course" does not filter by workspace and deletedAt.',
+      ),
+      expect.stringContaining(
+        'apps/api/src/modules/academic/infrastructure/unscoped-course-repository.ts:10: course.update(…) on content model "course"',
+      ),
+    ]);
+    expect(violations[0]).toContain("Build its where with scoped(workspaceId, { … })");
   });
 });

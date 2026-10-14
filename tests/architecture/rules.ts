@@ -111,6 +111,67 @@ export function pureLibraryViolations(root: string): string[] {
   return violations;
 }
 
+/**
+ * Content models of each module: Prisma models with a `workspaceId` field (spec M2, M3), as their client
+ * delegate name (`ClassSession` → `classSession`).
+ */
+export function contentModels(root: string): Map<string, string[]> {
+  const byModule = new Map<string, string[]>();
+  for (const file of listFiles(join(root, MODULES)).map((f) => MODULES + f)) {
+    if (!file.endsWith("/prisma/schema.prisma")) continue;
+    const module = moduleOf(file) ?? "";
+    const models = [...readText(root, file).matchAll(/^model\s+(\w+)\s*\{([\s\S]*?)^\}/gm)]
+      .filter((match) => /^\s*workspaceId\s/m.test(match[2] ?? ""))
+      .map((match) => {
+        const name = match[1] ?? "";
+        return name.charAt(0).toLowerCase() + name.slice(1);
+      });
+    if (models.length > 0) byModule.set(module, models);
+  }
+  return byModule;
+}
+
+/**
+ * Every query on a content model goes through the workspace scope (spec M3): in the module's
+ * `infrastructure/`, a call `.<model>.<operation>(…)` other than a create must build its argument with
+ * `scoped(` or `workspaceScope(` (apps/api/src/shared/persistence/workspace-scope.ts).
+ */
+export function unscopedContentQueries(root: string): string[] {
+  const violations: string[] = [];
+  for (const [module, models] of contentModels(root)) {
+    const infrastructure = `${MODULES}${module}/infrastructure/`;
+    const files = listFiles(join(root, infrastructure))
+      .map((f) => infrastructure + f)
+      .filter((f) => /\.(ts|tsx|mts)$/.test(f) && !/\.test\.(ts|tsx|mts)$/.test(f));
+    for (const file of files) {
+      const source = readText(root, file);
+      const call = new RegExp(`\\.(${models.join("|")})\\s*\\.\\s*(\\w+)\\s*\\(`, "g");
+      for (const match of source.matchAll(call)) {
+        const [, model, operation] = match;
+        if (operation === undefined || operation.startsWith("create")) continue;
+        const argument = balancedArgument(source, (match.index ?? 0) + match[0].length);
+        if (/\b(scoped|workspaceScope)\s*\(/.test(argument)) continue;
+        const line = source.slice(0, match.index).split("\n").length;
+        violations.push(
+          `${file}:${line}: ${model}.${operation}(…) on content model "${model}" does not filter by workspace and deletedAt. Build its where with scoped(workspaceId, { … }) from apps/api/src/shared/persistence/workspace-scope.ts.`,
+        );
+      }
+    }
+  }
+  return violations;
+}
+
+/** The text between the parenthesis that opens at `start - 1` and its matching closing parenthesis. */
+function balancedArgument(source: string, start: number): string {
+  let depth = 1;
+  for (let i = start; i < source.length; i++) {
+    const char = source[i];
+    if (char === "(") depth++;
+    else if (char === ")" && --depth === 0) return source.slice(start, i);
+  }
+  return source.slice(start);
+}
+
 function moduleOf(path: string): string | undefined {
   if (!path.startsWith(MODULES)) return undefined;
   return path.slice(MODULES.length).split("/")[0];
