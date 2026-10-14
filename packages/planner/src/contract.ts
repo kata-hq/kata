@@ -2,7 +2,7 @@
 // Instants are `Temporal.Instant` (UTC); free-time rules are local times in `timeZone` (spec §10.2 "Temps").
 
 /** Bumped when the planner's behavior changes. Stored in `PlanRun.plannerVersion`. */
-export const PLANNER_VERSION = "0.3.0";
+export const PLANNER_VERSION = "0.4.0";
 
 /** ISO weekday: 1 = Monday … 7 = Sunday (same as `Temporal.PlainDate#dayOfWeek`). */
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
@@ -121,7 +121,10 @@ export type UnplacedWork = {
   readonly missingMin: number;
 };
 
-/** S9: for a deadline, the work due before it is larger than the free time before it. */
+/**
+ * S9: for a deadline, the work due before it is larger than the free time before it. Capacity-based: it can
+ * differ from `unplaced` (what placement could not fit), e.g. when free time comes in pieces under `blockMinMin`.
+ */
 export type DeadlineRisk = {
   readonly deadline: Temporal.Instant;
   /** Tasks with exactly this deadline. */
@@ -140,6 +143,7 @@ export type PlannerOutput = {
   /** Planned blocks of the input that the new plan drops. */
   readonly removedBlockIds: readonly string[];
   readonly unplaced: readonly UnplacedWork[];
+  /** Only the overloaded deadlines (`missingMin > 0`), by deadline. */
   readonly risks: readonly DeadlineRisk[];
 };
 
