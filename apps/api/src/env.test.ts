@@ -2,7 +2,11 @@ import { describe, expect, test } from "bun:test";
 import { loadEnv, parseEnv } from "./env.ts";
 import { createLogger } from "./logger.ts";
 
-const valid = { DATABASE_URL: "postgres://kata:kata@localhost:5432/kata" };
+const auth = {
+  BETTER_AUTH_SECRET: "a-test-secret-of-at-least-32-characters",
+  BETTER_AUTH_URL: "http://localhost:5173",
+};
+const valid = { DATABASE_URL: "postgres://kata:kata@localhost:5432/kata", ...auth };
 
 class Exit extends Error {
   constructor(readonly code: number) {
@@ -14,7 +18,7 @@ describe("parseEnv", () => {
   test("applies defaults", () => {
     expect(parseEnv(valid)).toEqual({
       ok: true,
-      value: { DATABASE_URL: valid.DATABASE_URL, API_PORT: 3000, LOG_LEVEL: "info" },
+      value: { DATABASE_URL: valid.DATABASE_URL, API_PORT: 3000, LOG_LEVEL: "info", ...auth },
     });
   });
 
@@ -22,16 +26,25 @@ describe("parseEnv", () => {
     const env = parseEnv({ ...valid, API_PORT: "3018", LOG_LEVEL: "debug" });
     expect(env).toEqual({
       ok: true,
-      value: { DATABASE_URL: valid.DATABASE_URL, API_PORT: 3018, LOG_LEVEL: "debug" },
+      value: { DATABASE_URL: valid.DATABASE_URL, API_PORT: 3018, LOG_LEVEL: "debug", ...auth },
     });
   });
 
   test("names a missing variable", () => {
-    expect(parseEnv({})).toEqual({ ok: false, error: [{ name: "DATABASE_URL", problem: "missing" }] });
+    expect(parseEnv({ ...auth })).toEqual({
+      ok: false,
+      error: [{ name: "DATABASE_URL", problem: "missing" }],
+    });
   });
 
   test("names each invalid variable without its value", () => {
-    const env = parseEnv({ DATABASE_URL: "mysql://secret@host/db", API_PORT: "http", LOG_LEVEL: "loud" });
+    const env = parseEnv({
+      DATABASE_URL: "mysql://secret@host/db",
+      API_PORT: "http",
+      LOG_LEVEL: "loud",
+      BETTER_AUTH_SECRET: "too-short-secret",
+      BETTER_AUTH_URL: "ftp://example.com",
+    });
 
     expect(env).toEqual({
       ok: false,
@@ -39,6 +52,8 @@ describe("parseEnv", () => {
         { name: "DATABASE_URL", problem: "must be a postgres:// URL" },
         { name: "API_PORT", problem: "must be a port number" },
         { name: "LOG_LEVEL", problem: "must be one of debug, info, warn, error" },
+        { name: "BETTER_AUTH_SECRET", problem: "must be at least 32 characters" },
+        { name: "BETTER_AUTH_URL", problem: "must be an http(s):// URL" },
       ],
     });
   });
@@ -66,7 +81,7 @@ describe("loadEnv", () => {
     };
 
     expect(() =>
-      loadEnv({ API_PORT: "0" }, createLogger({ write: (line) => lines.push(line) }), exit),
+      loadEnv({ ...auth, API_PORT: "0" }, createLogger({ write: (line) => lines.push(line) }), exit),
     ).toThrow(new Exit(1));
     expect(lines).toHaveLength(1);
     expect(JSON.parse(lines[0] ?? "")).toMatchObject({

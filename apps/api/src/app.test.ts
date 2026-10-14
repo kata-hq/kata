@@ -4,15 +4,23 @@ import { hc } from "hono/client";
 import { type AppType, buildApp, createApp } from "./app.ts";
 import { createLogger } from "./logger.ts";
 import { createHealthRoutes, type HealthService } from "./modules/health/index.ts";
+import { createAuthRoutes } from "./modules/identity/index.ts";
 
 const lastCheck = new Date("2026-10-10T08:00:00.000Z");
 
 function setup(check: HealthService["check"]) {
   const lines: string[] = [];
   const logger = createLogger({ write: (line) => lines.push(line) });
-  const app = buildApp(logger, { health: createHealthRoutes({ check }) });
+  const authRequests: string[] = [];
+  const auth = createAuthRoutes({
+    handler: async (request) => {
+      authRequests.push(`${request.method} ${new URL(request.url).pathname}`);
+      return Response.json({ handled: true });
+    },
+  });
+  const app = buildApp(logger, { health: createHealthRoutes({ check }), auth });
   const logs = () => lines.map((line) => JSON.parse(line) as Record<string, unknown>);
-  return { app, logs };
+  return { app, logs, authRequests };
 }
 
 describe("GET /api/health", () => {
@@ -104,6 +112,21 @@ describe("errors", () => {
   });
 });
 
+describe("/api/auth/*", () => {
+  test("forwards GET and POST requests to Better Auth with their full path", async () => {
+    const { app, authRequests, logs } = setup(async () => ok({ api: "ok", db: "ok", lastCheck }));
+
+    const post = await app.request("/api/auth/sign-in/email", { method: "POST", body: "{}" });
+    const get = await app.request("/api/auth/get-session");
+
+    expect(post.status).toBe(200);
+    expect(get.status).toBe(200);
+    expect(authRequests).toEqual(["POST /api/auth/sign-in/email", "GET /api/auth/get-session"]);
+    // The request log keeps the route pattern only.
+    expect(logs().map((line) => line["route"])).toEqual(["/api/auth/*", "/api/auth/*"]);
+  });
+});
+
 describe("createApp", () => {
   test("wires the health module to its database client and closes it", async () => {
     // Nothing listens on port 1: the real module answers "db down" without a database.
@@ -111,6 +134,8 @@ describe("createApp", () => {
       DATABASE_URL: "postgres://kata:kata@127.0.0.1:1/kata",
       API_PORT: 3000,
       LOG_LEVEL: "error",
+      BETTER_AUTH_SECRET: "a-test-secret-of-at-least-32-characters",
+      BETTER_AUTH_URL: "http://localhost:5173",
     } as const;
     const running = createApp(env, createLogger({ write: () => {} }));
 

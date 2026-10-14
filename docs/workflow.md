@@ -33,7 +33,7 @@ bun run docker:down    # remove those three containers (Postgres keeps running)
 
 | Image | Base | Runs | Config (env only) |
 |---|---|---|---|
-| `kata-api` (`apps/api/Dockerfile`) | `oven/bun:1.4.2-slim`, user `bun` | `start` (default): `apps/api/src/server.ts`. `migrate`: `scripts/db-migrate-all.ts`, every module in order, then exits. | `DATABASE_URL` (required), `API_PORT` (3000), `LOG_LEVEL` |
+| `kata-api` (`apps/api/Dockerfile`) | `oven/bun:1.4.2-slim`, user `bun` | `start` (default): `apps/api/src/server.ts`. `migrate`: `scripts/db-migrate-all.ts`, every module in order, then exits. | `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (required; compose sets local values, override with `DOCKER_BETTER_AUTH_SECRET`), `API_PORT` (3000), `LOG_LEVEL` |
 | `kata-web` (`apps/web/Dockerfile`) | `oven/bun:1.4.2-distroless`, uid 65532 | `apps/web/server/serve.ts`: serves `build/client`, falls back to `index.html` for client routes, proxies `/api/*` to `API_URL` | `API_URL` (required, the API origin), `WEB_PORT` (8080) |
 
 - Both are multi-stage. The install layer copies only `bun.lock` and the workspaces' `package.json` files, so it stays cached until a dependency changes. No `.env` goes in an image (`.dockerignore`).

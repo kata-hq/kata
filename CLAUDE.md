@@ -8,7 +8,7 @@ Bun 1.4 workspaces, TypeScript 7 strict. API: Hono 4 + Hono RPC, Zod, Prisma 7 w
 
 ## Module map
 
-- `apps/api/src/modules/<module>/`: backend modules (`domain/`, `application/`, `infrastructure/`, `http/`, `prisma/`, `module.ts`, `index.ts`). Today: `health` (reference implementation).
+- `apps/api/src/modules/<module>/`: backend modules (`domain/`, `application/`, `infrastructure/`, `http/`, `prisma/`, `module.ts`, `index.ts`). Today: `health` (reference implementation) and `identity` (accounts, Better Auth at `/api/auth`).
 - Planned backend modules and what each may depend on: `platform` (nothing), `identity` → platform, `academic` → identity, platform, `work` → academic, platform, `notes` → academic, platform, `planning` → work, academic, platform. Any other direction is forbidden. Graph in `tests/architecture/module-graph.ts`.
 - `apps/web/app/modules/<module>/`: frontend modules (components, API calls through `app/api-client.ts`).
 - `apps/e2e`: Playwright tests.

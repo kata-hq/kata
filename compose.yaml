@@ -42,6 +42,9 @@ services:
       DATABASE_URL: ${DOCKER_DATABASE_URL:-postgres://kata:kata@postgres:5432/kata}
       API_PORT: 3000
       LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Local stack only: set DOCKER_BETTER_AUTH_SECRET for anything shared.
+      BETTER_AUTH_SECRET: ${DOCKER_BETTER_AUTH_SECRET:-local-docker-secret-not-for-production}
+      BETTER_AUTH_URL: http://localhost:${DOCKER_WEB_PORT:-8080}
     ports:
       - "${DOCKER_API_PORT:-3080}:3000"
     healthcheck:
