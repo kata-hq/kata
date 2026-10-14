@@ -1,0 +1,20 @@
+{
+  "name": "@kata/time",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "test:coverage": "bun test --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "temporal-polyfill": "1.0.6"
+  },
+  "devDependencies": {
+    "@kata/config": "workspace:*"
+  }
+}

@@ -35,6 +35,15 @@ The API is one process made of modules in `apps/api/src/modules/<module>/`. Each
 
 `packages/planner` (`@kata/planner`, spec §7.1) is a pure function: `plan(input)` returns the same output for the same input. It reads no database, no clock and no network (A6): the caller (the future `planning` module) loads the data, passes `now`, and applies the result. Time uses `Temporal` (native in Bun): `Temporal.Instant` for instants, local `Temporal.PlainTime` and an IANA `timeZone` for free-time rules. The spec's "proposition" values are inputs (`PlannerSettings`, defaults in `DEFAULT_PLANNER_SETTINGS`), never constants in the logic. `PLANNER_VERSION` changes when the behavior changes.
 
+### Time
+
+`@kata/time` (`packages/time`) holds the time helpers for the API and the web app (spec M7). It exports `Temporal` (from `temporal-polyfill`, so code that runs in browsers without a native `Temporal` works the same) and pure helpers:
+
+- Instants are UTC (`timestamptz`); recurring rules are a local time plus an IANA time zone; days without time are `date`.
+- `toInstant(date, time, timeZone)` turns a local wall time into an instant: in a DST gap the time moves forward (02:30 → 03:30 in Paris), in an overlap the earlier instant wins. `toZoned`, `localDateOf`, `startOfLocalDay`, `weekStart` (Monday).
+- Prisma interop: `instantFromDate` / `instantToDate` (`timestamptz`), `plainDateFromDb` / `plainDateToDb` (`@db.Date`), `plainTimeFromDb` / `plainTimeToDb` (`@db.Time`). They read UTC fields only, so the server's time zone never shifts a value.
+- No helper reads the clock: the caller passes "now". `DEFAULT_TIME_ZONE` is `Europe/Paris`.
+
 ## Spec rules A1–A7 and what we do
 
 The product spec ([product/mvp-spec-fr.html](product/mvp-spec-fr.html), §10.4) lists the boundary rules A1–A7. Our layout differs from the spec's (`apps/*` and `packages/*` instead of `services/api` and `lib/*`), and the kickoff overrides A4.
@@ -46,7 +55,7 @@ The product spec ([product/mvp-spec-fr.html](product/mvp-spec-fr.html), §10.4) 
 | A3 | A module uses only its own Prisma client. | Same (`module-prisma-isolation.grit`). |
 | A4 | No foreign key between modules; IDs checked through the port. | **Overridden:** cross-module foreign keys are allowed downward only (migration order), written in SQL. See [database.md](database.md). |
 | A5 | Frontend imports the backend with `import type` only. | Same (`web-api-type-only.grit`). |
-| A6 | `lib/planner` and `lib/capture-parser` have no I/O. | Same, for `packages/planner` and `packages/capture-parser` (`PURE_PACKAGES` in `rules.ts`): they import only their own files and `@kata/shared`, and receive "now", the time zone and the data as inputs (pure packages test). |
+| A6 | `lib/planner` and `lib/capture-parser` have no I/O. | Same, for `packages/planner` and `packages/capture-parser` (`PURE_PACKAGES` in `rules.ts`): they import only their own files, `@kata/shared` and `@kata/time`, and receive "now", the time zone and the data as inputs (pure packages test). |
 | A7 | Enforced by Biome rules (editor feedback) + `tests/architecture` in CI. | Same: GritQL plugins and `noRestrictedImports` in Biome, architecture tests in `tests/architecture`, all run by `bun run check`. |
 
 ## Guardrails
@@ -79,7 +88,7 @@ For rules that need the file system or a view across files. In [`tests/architect
 |---|---|---|
 | No stylesheet files outside the design system | `rules.ts` `stylesheetsOutsideDesignSystem` | any `*.css`, `*.scss`, `*.sass`, `*.less` file outside `packages/design-system` |
 | Module dependency direction | `rules.ts` `moduleDependencyViolations`, graph in `module-graph.ts` | an import from one module into another that the graph does not allow; a module folder missing from the graph |
-| Pure packages have no I/O (A6) | `rules.ts` `pureLibraryViolations`, list in `PURE_PACKAGES` | in a pure package's `src/` (tests excluded): an import other than its own files and `@kata/shared`; `Date.now()`, `new Date()`, `Temporal.Now`, `Math.random()`, `performance.now()`, `fetch()`, `process`, `Bun` |
+| Pure packages have no I/O (A6) | `rules.ts` `pureLibraryViolations`, list in `PURE_PACKAGES` | in a pure package's `src/` (tests excluded): an import other than its own files, `@kata/shared` and `@kata/time`; `Date.now()`, `new Date()`, `Temporal.Now`, `Math.random()`, `performance.now()`, `fetch()`, `process`, `Bun` |
 | Workspace scope on content queries | `rules.ts` `unscopedContentQueries` | in `modules/*/infrastructure`, a query (not a create) on a model with a `workspaceId` field whose argument does not use `scoped(` / `workspaceScope(` (see [database.md](database.md#content-tables-and-the-workspace-scope)) |
 
 ### Tests and coverage
