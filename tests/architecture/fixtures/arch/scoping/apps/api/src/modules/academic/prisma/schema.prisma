@@ -1,0 +1,16 @@
+// Fixture: `Course` is a content model (it has workspaceId), `Holiday` is not.
+model Course {
+  id          String    @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  workspaceId String    @map("workspace_id") @db.Uuid
+  name        String
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@schema("academic")
+}
+
+model Holiday {
+  id   String @id @default(dbgenerated("uuidv7()")) @db.Uuid
+  name String
+
+  @@schema("academic")
+}
