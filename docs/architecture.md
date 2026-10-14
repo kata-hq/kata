@@ -76,6 +76,7 @@ For rules that need the file system or a view across files. In [`tests/architect
 | No stylesheet files outside the design system | `rules.ts` `stylesheetsOutsideDesignSystem` | any `*.css`, `*.scss`, `*.sass`, `*.less` file outside `packages/design-system` |
 | Module dependency direction | `rules.ts` `moduleDependencyViolations`, graph in `module-graph.ts` | an import from one module into another that the graph does not allow; a module folder missing from the graph |
 | Pure packages have no I/O (A6) | `rules.ts` `pureLibraryViolations`, list in `PURE_PACKAGES` | in a pure package's `src/` (tests excluded): an import other than its own files and `@kata/shared`; `Date.now()`, `new Date()`, `Temporal.Now`, `Math.random()`, `performance.now()`, `fetch()`, `process`, `Bun` |
+| Workspace scope on content queries | `rules.ts` `unscopedContentQueries` | in `modules/*/infrastructure`, a query (not a create) on a model with a `workspaceId` field whose argument does not use `scoped(` / `workspaceScope(` (see [database.md](database.md#content-tables-and-the-workspace-scope)) |
 
 ### Tests and coverage
 
