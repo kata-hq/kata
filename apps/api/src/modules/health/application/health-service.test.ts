@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { err, none, ok, type Result } from "@kata/shared";
+import { err, none, type Option, ok, type Result, some } from "@kata/shared";
 import { createLogger } from "../../../logger.ts";
 import type { RepositoryError } from "../../../shared/persistence/repository-error.ts";
 import type { RecordSystemCheck, SystemCheck, SystemCheckRepository } from "../domain/system-check.ts";
@@ -8,27 +8,30 @@ import { SystemCheckHealthService } from "./health-service.ts";
 const checkedAt = new Date("2026-10-10T08:00:00.000Z");
 const now = () => new Date("2026-10-10T09:00:00.000Z");
 
-type Outcome = "ok" | "err" | { readonly throw: unknown };
+type Outcome = "ok" | "empty" | "err" | { readonly throw: unknown };
 
-/** In-memory repository. `record` answers with `outcome`. */
+/** In-memory repository. `findLatest` answers with `outcome`; `record` must never be called by the check. */
 class FakeSystemCheckRepository implements SystemCheckRepository {
   readonly recorded: RecordSystemCheck[] = [];
+  reads = 0;
 
   constructor(private readonly outcome: Outcome) {}
 
   async record(input: RecordSystemCheck): Promise<Result<SystemCheck, RepositoryError>> {
-    if (typeof this.outcome === "object") throw this.outcome.throw;
     this.recorded.push(input);
-    if (this.outcome === "err") return err({ type: "unique-violation", constraint: undefined });
-    return ok({ id: "01990000-0000-7000-8000-000000000001", status: input.status, checkedAt });
+    return ok({ id: "01990000-0000-7000-8000-000000000002", status: input.status, checkedAt });
   }
 
   async findById(): Promise<Result<SystemCheck, RepositoryError>> {
     return err({ type: "not-found" });
   }
 
-  async findLatest() {
-    return ok(none());
+  async findLatest(): Promise<Result<Option<SystemCheck>, RepositoryError>> {
+    this.reads += 1;
+    if (typeof this.outcome === "object") throw this.outcome.throw;
+    if (this.outcome === "err") return err({ type: "unique-violation", constraint: undefined });
+    if (this.outcome === "empty") return ok(none());
+    return ok(some({ id: "01990000-0000-7000-8000-000000000001", status: "ok", checkedAt }));
   }
 }
 
@@ -44,12 +47,20 @@ function setup(outcome: Outcome) {
 const down = err({ api: "ok", db: "down", lastCheck: now() } as const);
 
 describe("SystemCheckHealthService", () => {
-  test("records an ok check and reports db ok with the check time", async () => {
+  test("reads the latest check without recording one and reports db ok with the time of this check", async () => {
     const { service, repository, logs } = setup("ok");
 
-    expect(await service.check()).toEqual({ ok: true, value: { api: "ok", db: "ok", lastCheck: checkedAt } });
-    expect(repository.recorded).toEqual([{ status: "ok" }]);
+    expect(await service.check()).toEqual({ ok: true, value: { api: "ok", db: "ok", lastCheck: now() } });
+    expect(repository.reads).toBe(1);
+    expect(repository.recorded).toEqual([]);
     expect(logs()).toEqual([]);
+  });
+
+  test("reports db ok when no check has been recorded yet", async () => {
+    const { service, repository } = setup("empty");
+
+    expect(await service.check()).toEqual({ ok: true, value: { api: "ok", db: "ok", lastCheck: now() } });
+    expect(repository.recorded).toEqual([]);
   });
 
   test("reports db down and logs the error name and code when the repository throws", async () => {

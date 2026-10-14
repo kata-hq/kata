@@ -12,7 +12,7 @@ datasource db {
   schemas  = ["health"]
 }
 
-/// One database round trip made by the health check. No personal data.
+/// One recorded health check (dev seed, or on demand). `GET /api/health` only reads it. No personal data.
 model SystemCheck {
   id        String   @id @default(dbgenerated("uuidv7()")) @db.Uuid
   status    String

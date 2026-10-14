@@ -9,7 +9,10 @@ export interface HealthService {
   check(): Promise<Result<HealthStatus<"ok">, HealthStatus<"down">>>;
 }
 
-/** Checks the database by recording a `system_check` row. */
+/**
+ * Checks the database with a read of the latest `system_check` row. It never writes, so a monitor
+ * that polls `GET /api/health` does not grow the table. `lastCheck` is the time of this check.
+ */
 export class SystemCheckHealthService implements HealthService {
   constructor(
     private readonly systemChecks: SystemCheckRepository,
@@ -19,9 +22,9 @@ export class SystemCheckHealthService implements HealthService {
 
   async check(): Promise<Result<HealthStatus<"ok">, HealthStatus<"down">>> {
     try {
-      const recorded = await this.systemChecks.record({ status: "ok" });
-      if (recorded.ok) return ok({ api: "ok", db: "ok", lastCheck: recorded.value.checkedAt });
-      this.logger.warn("health check failed", { error: recorded.error.type });
+      const latest = await this.systemChecks.findLatest();
+      if (latest.ok) return ok({ api: "ok", db: "ok", lastCheck: this.now() });
+      this.logger.warn("health check failed", { error: latest.error.type });
     } catch (error) {
       // An outage (connection refused, timeout) is thrown by the repository; for this check it means "down".
       // The cause is logged so a bug does not pass for an outage.
