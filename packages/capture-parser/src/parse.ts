@@ -2,6 +2,7 @@
 // A pure function: the reference instant, time zone, courses and task types are inputs.
 import { err, ok, type Result } from "@kata/shared";
 import { type DateMatch, findDate } from "./dates.ts";
+import { findTaskType } from "./task-types.ts";
 import { type Token, tokenize } from "./text.ts";
 import type { Capture, CaptureContext, CaptureError, Deadline } from "./types.ts";
 
@@ -12,12 +13,27 @@ export function parseCapture(input: string, context: CaptureContext): Result<Cap
   const now = referenceIn(context);
   if (!now.ok) return now;
   const tokens = tokenize(input);
+  /** The normalised words still free; a word read as a date, type or course becomes null. */
+  const free: (string | null)[] = tokens.map((token) => token.norm);
+  const use = (start: number, end: number) => free.fill(null, start, end);
+
   const date = findDate(tokens, now.value);
+  if (date !== null) use(date.start, date.end);
+  const type = findTaskType(free, context.taskTypes);
+  if (type !== null) use(type.start, type.end);
+
   return ok({
     input,
     title: input.trim(),
     course: null,
-    taskType: null,
+    taskType:
+      type === null
+        ? null
+        : {
+            key: type.value.key,
+            label: type.value.label,
+            matched: spanText(input, tokens, type.start, type.end),
+          },
     deadline: date === null ? null : deadline(input, tokens, date, context.timeZone),
   });
 }
