@@ -44,7 +44,18 @@ bun run docker:down    # remove those three containers (Postgres keeps running)
 
 ## Issues, branches and PRs
 
-Follow the `agile-workflow` skill (`.claude/skills/agile-workflow/SKILL.md`): one issue per PR, branch `<type>/<issue title>`, one-line commits `type(scope): description`, `bun run check` (and `bun run e2e` when the change is visible in the app) before the PR, and the user does the squash merge.
+Repo `kata-hq/kata`, project `kata-dev` (number `1`, owner `kata-hq`). One issue is one PR.
+
+- **Epic**: one result a user can see, too large for one PR. Type `Epic`, title `[<CODE>-00] <Epic name>` (`<CODE>`: 2 to 4 unique capital letters), body Goal / Scope / Done when; its tasks are sub-issues. Ask the user before creating an epic. Close it when all its sub-issues are closed.
+- **Issue**: type Feature (visible), Task (internal) or Bug. Title `<CODE>-<NN>/<short-name>`: `<NN>` is the highest number among all sub-issues of the epic (open and closed) plus one. Every issue is a sub-issue of an epic. Body: `.github/ISSUE_TEMPLATE/issue.md`; Features and Bugs need scenarios, Tasks need acceptance criteria. 8 points or fewer, otherwise split it.
+- **Idea**: an issue with only a "Context" section, Status "Backlog", no Points.
+- **Project fields** (on the project item, not the issue): Status (Backlog, Todo, In Progress, In Review, Done), Priority (P0 broken and blocking, P1 this cycle, P2 normal, P3 nice to have), Points (1, 2, 3, 5, 8). Sprint is unused. A ready issue is "Todo". The project sets "Done" when the issue closes; never set it by hand.
+- **Picking up**: the highest Priority "Todo" issue with no assignee and no open `blocked_by` dependency (lower number first). All agents share one GitHub account, so claim it by creating its branch on GitHub from `main`: if the ref already exists, another agent has it. Then assign it, set "In Progress" (and the epic too).
+- **Branch**: `<type>/<issue title>` with type `feature`, `bugfix` or `task` (for example `task/FND-28/agents-merge-docs`).
+- **Commits and PR title**: one line `type(scope): description` (`feat`, `fix`, `chore`, `docs`, `refactor`, `test`; scope is the top-level folder, or `kata` for several), lowercase imperative, no body, no trailers.
+- **Validate**: each acceptance criterion and scenario yourself; `bun run check`, and `bun run e2e` when the change is visible. New work found on the way becomes a new idea, not part of the issue.
+- **PR**: `.github/pull_request_template.md`, with `Closes #<number>` and how each criterion was validated. Set "In Review".
+- **Merge**: no human review. When `check`, `e2e` and `docker` pass in CI, the agent squash-merges its own PR (`gh pr merge --squash --delete-branch`). If a `review-pr` review says "Changes needed", fix it first.
 
 ## Agent workflow
 
@@ -54,10 +65,8 @@ Claude Code reads `CLAUDE.md` (the map and the hard rules) and the project setti
 
 | Skill | Use it to |
 |---|---|
-| `agile-workflow` | follow the process: issues, branches, commits, validation, PRs, reviews |
-| `gh-epics`, `gh-project` | manage epics and sub-issues, set Status / Priority / Points on the `kata-dev` project |
 | `plan-issue` | turn an idea into a ready issue |
-| `build-issue` | implement an issue end to end, up to an open PR |
+| `build-issue` | implement an issue end to end, up to the merged PR |
 | `review-pr` | review a PR against the rules in `docs/` |
 
 `plan-issue`, `build-issue` and `review-pr` also run without a human (GitHub Action): they never ask questions; when blocked, they comment on the issue and add the label `needs-human`.
@@ -80,7 +89,7 @@ Everything lives in `.github/`:
 | `workflows/ci.yml` | every PR to `main` and every push to `main` | `check`: install, migrate, `bun run check` (coverage gate included) on a Postgres service. `e2e`: `bun run e2e` (Playwright report uploaded on failure). `docker`: builds `kata-api` and `kata-web` (no push). |
 | `workflows/claude.yml` | `@claude` in an issue, comment or review; label `agent` on an issue | Claude answers the mention, or runs `/build-issue <number>` for the `agent` label. 60 turns, 60 minutes, one run at a time per issue/PR. Events from bots are ignored. |
 | `workflows/claude-review.yml` | PR opened, pushed or marked ready (not drafts) | Claude runs `/review-pr <number>`. 30 turns, 30 minutes; a new push cancels the review in progress. |
-| `ISSUE_TEMPLATE/issue.md`, `pull_request_template.md` | new issue / new PR | The issue body of the `agile-workflow` skill and the PR body. Blank issues stay enabled for epics and ideas. |
+| `ISSUE_TEMPLATE/issue.md`, `pull_request_template.md` | new issue / new PR | The issue body and the PR body. Blank issues stay enabled for epics and ideas. |
 
 The CI env (Postgres service on 5432, `DATABASE_URL`, `TEST_DATABASE_URL`) matches `.env.example`. Postgres is reachable, so `dev:isolated` and `e2e` never start docker compose there.
 

@@ -1,11 +1,19 @@
 ---
 name: review-pr
-description: Use to review a kata-hq/kata PR against its issue and the project rules in docs/, and post the result as a comment review. Also used non-interactively by the GitHub Action. Never pushes fixes, never merges.
+description: Use to review a kata-hq/kata PR against its issue and the project rules in docs/, and post the result as a comment review. Also used non-interactively by the GitHub Action. Never pushes fixes.
 ---
 
 # Review a PR
 
-Steps, the review format ("Ready for merge" / "Changes needed") and the Status changes are in `agile-workflow` section 7. This skill lists what to check in Kata.
+This skill lists what to check in Kata. The PR author merges it when CI passes, so a review only blocks with "Changes needed".
+
+## Review format
+
+Check out the PR detached (`gh pr checkout <n> --detach`; another worktree may own the branch) and validate each criterion yourself; do not trust the PR body. Post a comment review (`gh pr review --comment`; the shared account cannot approve its own PRs):
+
+- First line "Ready for merge" or "Changes needed" (a criterion or scenario fails, a bug, or a broken convention).
+- One line per acceptance criterion and scenario, with how you validated it; one "Conventions" line (branch, commit, PR title, `Closes #`).
+- Then problems and notes. On "Changes needed", set the issue back to "In Progress". Do not delete branches you did not create.
 
 ## Non-interactive
 

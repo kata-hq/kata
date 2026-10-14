@@ -5,7 +5,7 @@ description: Use to turn an idea or a request into a ready kata-hq/kata issue (p
 
 # Plan an issue
 
-Process (duplicates, title, type, epic, project fields, Status) is in `agile-workflow` sections 1–2, `gh-epics` and `gh-project`. This skill adds what a Kata issue must say so `build-issue` can run without questions.
+Process (duplicates, title, type, epic, project fields, Status) is in "Issues, branches and PRs" in `docs/workflow.md`. This skill adds what a Kata issue must say so `build-issue` can run without questions.
 
 ## Non-interactive
 
@@ -20,7 +20,7 @@ Do not ask the user anything. When the idea is too vague to write acceptance cri
 
 ## Body
 
-Use the `agile-workflow` template and add these sections after "What to do":
+Use the `.github/ISSUE_TEMPLATE/issue.md` body and add these sections after "What to do":
 
 - `## Modules touched`: backend and frontend modules, packages (`design-system`, `shared`), docs.
 - `## Data / RGPD impact`: new tables or columns, which hold personal data, and the row to add to the RGPD register in `docs/database.md` (the PR must update it). New migrations: which module, and any foreign key (only to modules earlier in the migration order). "None" when nothing changes.

@@ -1,6 +1,6 @@
 ---
 name: Issue
-about: A Feature, Bug or Task ready to start (body of the agile-workflow skill, section 1)
+about: A Feature, Bug or Task ready to start (see docs/workflow.md)
 title: "<CODE>-<NN>/<kebab-case-title>"
 ---
 
