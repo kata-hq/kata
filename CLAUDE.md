@@ -37,7 +37,7 @@ Bun 1.4 workspaces, TypeScript 7 strict. API: Hono 4 + Hono RPC, Zod, Prisma 7 w
 
 ## Process
 
-Follow the `agile-workflow` skill: one issue per PR, branch `<type>/<issue title>`, one-line commits `type(scope): description` with no body or trailers, `bun run check` (and `bun run e2e` for visible changes) before the PR, and never merge (the user does). Skills `plan-issue`, `build-issue` and `review-pr` cover each step for agents; `gh-epics` and `gh-project` cover GitHub epics and the project board. Work in your own git worktree and use `bun run dev:isolated`.
+Follow "Issues, branches and PRs" in `docs/workflow.md`: one issue per PR, branch `<type>/<issue title>`, one-line commits `type(scope): description` with no body or trailers, `bun run check` (and `bun run e2e` for visible changes) before the PR. There is no human review: squash-merge your own PR once CI (`check`, `e2e`, `docker`) passes. Skills `plan-issue`, `build-issue` and `review-pr` cover each step for agents. Work in your own git worktree and use `bun run dev:isolated`.
 
 Hooks (`.claude/settings.json`): after each edit, Biome and the package typecheck run on the changed file; before you stop, `bun run check` must pass. See `docs/workflow.md`.
 

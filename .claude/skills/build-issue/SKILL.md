@@ -1,11 +1,11 @@
 ---
 name: build-issue
-description: Use to implement a ready kata-hq/kata issue end to end, from reading it to an open PR in "In Review". Also used non-interactively by the GitHub Action. Never merges.
+description: Use to implement a ready kata-hq/kata issue end to end, from reading it to its squash-merged PR. Also used non-interactively by the GitHub Action.
 ---
 
 # Build an issue
 
-Process (pick up, claim, branch, commits, validate, PR, Status) is in `agile-workflow` sections 3–6 and `gh-project`. This skill adds the Kata specifics.
+Process (pick up, claim, branch, commits, validate, PR, merge, Status) is in "Issues, branches and PRs" in `docs/workflow.md`. This skill adds the Kata specifics.
 
 ## Non-interactive
 
@@ -19,7 +19,7 @@ Do not ask the user anything. When you are blocked (unclear or contradicting acc
 4. Implement with small one-line commits. The post-edit hook runs Biome and the package typecheck after each edit: fix what it reports before moving on.
 5. Validate: `bun run check` and `bun run e2e` must pass. Check each acceptance criterion yourself; for UI, open the isolated instance in Chrome and take screenshots.
 6. `git fetch && git rebase origin/main`, run `bun run check` again, push, open the PR (`Closes #<n>`, summary, each criterion with how you validated it, screenshots for UI changes), set Status "In Review".
-7. Never merge. Never approve your own PR.
+7. Wait for CI (`gh pr checks --watch`). When `check`, `e2e` and `docker` pass and no `review-pr` review says "Changes needed", squash-merge (`gh pr merge --squash --delete-branch`). A failing CI job is yours to fix, never to skip.
 
 ## Gotchas
 
