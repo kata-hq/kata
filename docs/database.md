@@ -82,7 +82,7 @@ Template for a new row: table (`schema.table`), the personal data columns, why w
 
 | Table | Content |
 |---|---|
-| `health.system_check` | Health check results: id, status, time. |
+| `health.system_check` | Health check results recorded on demand (dev seed): id, status, time. `GET /api/health` only reads it, so polling does not grow it. |
 
 ### Logs
 
