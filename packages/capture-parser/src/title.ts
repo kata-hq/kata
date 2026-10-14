@@ -6,7 +6,8 @@ const HAS_TEXT = /[\p{L}\p{N}]/u;
 
 /**
  * The free words as typed, in order. A group of consecutive free words made only of short words or
- * punctuation is dropped (the "de" left in "DM de compta"). When nothing is left, the line without its
+ * punctuation is dropped (the "de" left in "DM de compta"), and so are short words at the end of the
+ * title ("le polycopié de [management]"). When nothing is left, the line without its
  * date words; when that is empty too, the whole line.
  */
 export function buildTitle(
@@ -15,13 +16,19 @@ export function buildTitle(
   free: FreeWords,
   date: { readonly start: number; readonly end: number } | null,
 ): string {
-  const kept = freeGroups(tokens, free).filter((group) =>
-    group.some((token) => HAS_TEXT.test(token.text) && !SHORT_WORDS.has(token.norm)),
-  );
-  const title = join(kept.flat());
+  const words = freeGroups(tokens, free)
+    .filter((group) => group.some((token) => !filler(token)))
+    .flat();
+  while (words.length > 0 && filler(words[words.length - 1])) words.pop();
+  const title = join(words);
   if (title !== "") return title;
   const withoutDate = join(tokens.filter((_, i) => date === null || i < date.start || i >= date.end));
   return withoutDate !== "" ? withoutDate : input.trim();
+}
+
+/** A short word or punctuation: never a title alone, never at the end of one ("le polycopié de"). */
+function filler(token: Token | undefined): boolean {
+  return token === undefined || !HAS_TEXT.test(token.text) || SHORT_WORDS.has(token.norm);
 }
 
 /** The runs of consecutive free tokens. */
