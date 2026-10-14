@@ -66,7 +66,12 @@ export function buildCalendar(input: PlannerInput): Calendar {
   return { start, horizon, freeSlots, fixed, movable, droppedBlockIds, dayUseMin };
 }
 
-function isFixed(block: ExistingBlock, now: Temporal.Instant, windowEnd: Temporal.Instant, release: boolean): boolean {
+function isFixed(
+  block: ExistingBlock,
+  now: Temporal.Instant,
+  windowEnd: Temporal.Instant,
+  release: boolean,
+): boolean {
   const inProgress = isBefore(block.start, now);
   const inWindow = isBefore(block.start, windowEnd) && !release;
   return block.pinned || inProgress || inWindow;

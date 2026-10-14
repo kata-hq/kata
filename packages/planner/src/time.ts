@@ -71,7 +71,11 @@ export function subtractIntervals(from: readonly Interval[], busy: readonly Inte
 }
 
 /** Clips intervals to [start, end), dropping the empty ones. */
-export function clipIntervals(intervals: readonly Interval[], start: Temporal.Instant, end: Temporal.Instant): Interval[] {
+export function clipIntervals(
+  intervals: readonly Interval[],
+  start: Temporal.Instant,
+  end: Temporal.Instant,
+): Interval[] {
   return intervals
     .map((i) => ({ start: maxInstant(i.start, start), end: minInstant(i.end, end) }))
     .filter((i) => isBefore(i.start, i.end));
@@ -82,7 +86,11 @@ export function localDate(instant: Temporal.Instant, timeZone: string): Temporal
 }
 
 /** The instant of a local date and time (DST gaps resolve forward, as Temporal's "compatible"). */
-export function atLocal(date: Temporal.PlainDate, time: Temporal.PlainTime, timeZone: string): Temporal.Instant {
+export function atLocal(
+  date: Temporal.PlainDate,
+  time: Temporal.PlainTime,
+  timeZone: string,
+): Temporal.Instant {
   return date.toZonedDateTime({ timeZone, plainTime: time }).toInstant();
 }
 

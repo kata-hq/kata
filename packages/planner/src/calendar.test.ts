@@ -77,9 +77,9 @@ describe("free slots", () => {
 
     expect(ranges(result.freeSlots)).toEqual(["2026-03-29T01:00–05:00"]);
     // 02:00–03:00 does not exist that night: 3 hours of real time.
-    expect(result.freeSlots.map((s) => (s.end.epochMilliseconds - s.start.epochMilliseconds) / 3_600_000)).toEqual([
-      3,
-    ]);
+    expect(
+      result.freeSlots.map((s) => (s.end.epochMilliseconds - s.start.epochMilliseconds) / 3_600_000),
+    ).toEqual([3]);
   });
 
   test("DST end (2026-10-25, Europe/Paris): the rule keeps its local hours", () => {
@@ -93,9 +93,9 @@ describe("free slots", () => {
 
     expect(ranges(result.freeSlots)).toEqual(["2026-10-25T01:00–05:00"]);
     // 02:00–03:00 happens twice that night: 5 hours of real time.
-    expect(result.freeSlots.map((s) => (s.end.epochMilliseconds - s.start.epochMilliseconds) / 3_600_000)).toEqual([
-      5,
-    ]);
+    expect(
+      result.freeSlots.map((s) => (s.end.epochMilliseconds - s.start.epochMilliseconds) / 3_600_000),
+    ).toEqual([5]);
   });
 });
 
