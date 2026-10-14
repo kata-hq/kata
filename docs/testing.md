@@ -46,7 +46,7 @@ It runs, in order, and stops at the first failure with a summary of which step f
 Every architecture and styling rule is enforced by a tool, and each has a fixture that breaks it:
 
 - `tests/architecture/fixtures/lint/`: one file per Biome rule (GritQL plugin or `noRestrictedImports`), laid out like the repo (`apps/web/app/…`, `apps/api/src/modules/work/…`) so the plugins' path scoping applies, plus `allowed.*` files that must stay clean. `lint-rules.test.ts` lints them with the real `biome.json` (copied to a temp dir without the fixtures exclusion) and checks each expected diagnostic and its fix message.
-- `tests/architecture/fixtures/arch/`: a small fake repo per architecture test (stray stylesheets, modules that break the graph). `architecture.test.ts` runs each rule on the real repo (no violation) and on its fixture (each violation reported).
+- `tests/architecture/fixtures/arch/`: a small fake repo per architecture test (stray stylesheets, modules that break the graph, a pure package with I/O). `architecture.test.ts` runs each rule on the real repo (no violation) and on its fixture (each violation reported).
 - The fixtures are excluded from `bun run lint` (`files.includes` in `biome.json`) and from `tsc` (`tests/architecture/tsconfig.json`).
 
 To add a guardrail: write the rule (a `.grit` file registered in `biome.json`, or a function in `tests/architecture/rules.ts`), add a fixture that breaks it, add the expected diagnostic to the test, and list the rule in [architecture.md](architecture.md#guardrails). The failure message must say how to fix the problem.
