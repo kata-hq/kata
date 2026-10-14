@@ -5,6 +5,7 @@ import { findCourse } from "./courses.ts";
 import { type DateMatch, findDate } from "./dates.ts";
 import { findTaskType } from "./task-types.ts";
 import { type Token, tokenize } from "./text.ts";
+import { buildTitle } from "./title.ts";
 import type { Capture, CaptureContext, CaptureError, Deadline } from "./types.ts";
 
 /** Rule K-R7: a deadline without a time is the end of that day, 23:59 local time. */
@@ -27,7 +28,7 @@ export function parseCapture(input: string, context: CaptureContext): Result<Cap
 
   return ok({
     input,
-    title: input.trim(),
+    title: buildTitle(input, tokens, free, date),
     course:
       course === null
         ? null

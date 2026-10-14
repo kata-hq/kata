@@ -11,6 +11,13 @@ export function normalize(text: string): string {
     .replace(/[’‘`´]/g, "'");
 }
 
+/** Short French words (normalised): they never select a course, and alone they never make a title. */
+export const SHORT_WORDS: ReadonlySet<string> = new Set(
+  "a au aux avec ce ces cet cette d dans de des du en et l la le les ma mes mon ou par pour sa ses son sur un une".split(
+    " ",
+  ),
+);
+
 export type Token = {
   /** The word as typed. */
   readonly text: string;
