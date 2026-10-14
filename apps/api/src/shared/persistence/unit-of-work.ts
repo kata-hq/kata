@@ -1,4 +1,5 @@
 import type { Result } from "@kata/shared";
+import type { ChangeNotifier } from "../changes/change-notifier.ts";
 
 /** The part of a module's Prisma client the unit of work needs. */
 export type TransactionalClient<Tx> = {
@@ -37,6 +38,22 @@ export function createUnitOfWork<Tx, Repositories>(
       }
     },
   };
+}
+
+/**
+ * Runs `work` in `unitOfWork` and, once an `Ok` committed, tells `notifier` that `workspaceId` changed
+ * (spec M6). No notification on `Err` or on a throw. The notifier never throws, so its failure never
+ * undoes or hides the write.
+ */
+export async function runAndNotify<Repositories, T, E>(
+  unitOfWork: UnitOfWork<Repositories>,
+  notifier: ChangeNotifier,
+  workspaceId: string,
+  work: (repositories: Repositories) => Promise<Result<T, E>>,
+): Promise<Result<T, E>> {
+  const result = await unitOfWork.run(work);
+  if (result.ok) await notifier.notify(workspaceId);
+  return result;
 }
 
 class Rollback extends Error {
