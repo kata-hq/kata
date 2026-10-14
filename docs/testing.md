@@ -21,6 +21,12 @@ It runs, in order, and stops at the first failure with a summary of which step f
 - `bun run test` (or `bun run test:unit`) runs `bun test` in each workspace. Each workspace has its own `bunfig.toml` (the design system and the web app preload happy-dom and the StyleX compiler from `test/`).
 - No database, no network. Fake the dependencies through the constructor (a fake repository, a fake Prisma delegate, a logger that collects lines).
 
+### Quick capture parser (`packages/capture-parser`)
+
+- Table tests per rule (`dates.test.ts`, `task-types.test.ts`, `courses.test.ts`, `title.test.ts`) and one end-to-end table, `src/cases.test.ts`: a line and its full expected result (course, type, date, time, title), with a fixed reference instant and time zone.
+- Property tests (`src/properties.test.ts`): lines generated from a seeded pseudo-random generator; the rules (C1, C6, K-R7, never throws) must hold for each. A failure prints the seed, the run and the line: add that line to `cases.test.ts`.
+- Rule C7, every parsing error found in the beta becomes a case: add the reported line to `cases.test.ts` with the result it should give, see it fail, then fix the parser. Never delete a row to make the table pass; change a row only when the expected result was wrong (say why in the PR).
+
 ## Integration tests
 
 - Files: `*.int.test.ts`, in `apps/api`. They use a real Postgres database: `TEST_DATABASE_URL`, whose name must end in `_test`.
