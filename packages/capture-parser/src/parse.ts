@@ -1,6 +1,7 @@
 // parseCapture: one line of quick capture → course, type, deadline and title (spec §7.4, rules C1–C7).
 // A pure function: the reference instant, time zone, courses and task types are inputs.
 import { err, ok, type Result } from "@kata/shared";
+import { findCourse } from "./courses.ts";
 import { type DateMatch, findDate } from "./dates.ts";
 import { findTaskType } from "./task-types.ts";
 import { type Token, tokenize } from "./text.ts";
@@ -21,11 +22,20 @@ export function parseCapture(input: string, context: CaptureContext): Result<Cap
   if (date !== null) use(date.start, date.end);
   const type = findTaskType(free, context.taskTypes);
   if (type !== null) use(type.start, type.end);
+  const course = findCourse(free, context.courses);
+  if (course !== null) use(course.start, course.end);
 
   return ok({
     input,
     title: input.trim(),
-    course: null,
+    course:
+      course === null
+        ? null
+        : {
+            id: course.value.id,
+            name: course.value.name,
+            matched: spanText(input, tokens, course.start, course.end),
+          },
     taskType:
       type === null
         ? null
