@@ -64,6 +64,7 @@ Manual constructor injection only: no DI container, no decorators, no service lo
 - **Routes** map `Ok` / `Err` to status codes. An error they do not handle is thrown to the app error handler.
 - **Error responses** always have the body `{ "error": { "code": string, "message": string } }` (`shared/http/errors.ts`). Unknown routes → 404 `not_found`. A `HTTPException` keeps its status. Any other thrown error → 500 `internal_error`, logged with its stack; the stack and message never reach the client.
 - **Transactions** use the module's unit of work (`createHealthUnitOfWork`): commit on `Ok`, roll back on `Err` or throw. One transaction never spans two modules.
+- **Changes after commit** (spec M6, 10.5). A use case that changes a workspace's data runs `runAndNotify(unitOfWork, changes, workspaceId, work)` (`shared/persistence/unit-of-work.ts`): after an `Ok` committed, it calls `changes.notify(workspaceId)`. The module receives the `ChangeNotifier` (`shared/changes/change-notifier.ts`) through its `module.ts` deps; `createApp` builds one with `createChangeNotifier(listeners, logger)`, where the listeners are other modules' reactions (the planner's `replan`). `notify` never throws: a failing listener is logged (`change listener failed`) and the write stays. No events table, no worker.
 
 ## Using another module
 

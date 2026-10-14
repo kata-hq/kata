@@ -127,6 +127,7 @@ The API writes JSON lines to stdout (`apps/api/src/logger.ts`): `time`, `level`,
 | `request` (one per request) | `method`, `route` (the matched route pattern such as `/api/health` or `/api/users/:id`, never the real path; `unmatched` when no route matched), `status`, `durationMs`, `requestId` (random UUID, also sent as `x-request-id`) |
 | `unhandled error` | `requestId`, `error` (error class name), `stack` |
 | `health check failed` (warn) | `error` (error class name, or the `RepositoryError` type), `code` (driver error code such as `ECONNREFUSED`, when there is one). Never the error message. |
+| `change listener failed` (warn) | `error` (error class name). No workspace id, never the error message. |
 | `invalid environment` | `variables`: name and problem of each bad variable, never its value |
 | `api started` / `api stopping` / `api stopped` | `port`, `signal` |
 
