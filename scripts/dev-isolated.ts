@@ -17,6 +17,8 @@ const READY_TIMEOUT_MS = 120_000;
 type Child = { readonly label: string; readonly process: Bun.Subprocess };
 
 const reset = process.argv.includes("--reset");
+/** Signs cookies of local instances only. Never used when `.env` or the shell sets BETTER_AUTH_SECRET. */
+const DEV_AUTH_SECRET = "kata-dev-isolated-secret-not-for-production";
 const fileEnv = readEnvFile(`${rootDir}.env`);
 // `.env` gives the Postgres server; the shell can change anything except the ports (see above).
 const dbEnv = { ...fileEnv, ...process.env };
@@ -38,6 +40,9 @@ const childEnv = {
   API_PORT: String(instance.apiPort),
   WEB_PORT: String(instance.webPort),
   API_URL: `http://localhost:${instance.apiPort}`,
+  // Auth cookies and origin checks follow this instance's web origin. Worktrees without a secret in `.env` get a dev one.
+  BETTER_AUTH_URL: `http://localhost:${instance.webPort}`,
+  BETTER_AUTH_SECRET: dbEnv["BETTER_AUTH_SECRET"] ?? DEV_AUTH_SECRET,
 };
 const children: Child[] = [
   start("api", ["bun", "--hot", "src/server.ts"], `${rootDir}apps/api`),
