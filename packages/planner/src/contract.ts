@@ -2,7 +2,7 @@
 // Instants are `Temporal.Instant` (UTC); free-time rules are local times in `timeZone` (spec §10.2 "Temps").
 
 /** Bumped when the planner's behavior changes. Stored in `PlanRun.plannerVersion`. */
-export const PLANNER_VERSION = "0.2.0";
+export const PLANNER_VERSION = "0.3.0";
 
 /** ISO weekday: 1 = Monday … 7 = Sunday (same as `Temporal.PlainDate#dayOfWeek`). */
 export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
